@@ -1,0 +1,4 @@
+# These run on Linux. Keep LF endings even on a Windows checkout.
+*.sh       text eol=lf
+*.tftpl    text eol=lf
+*.service  text eol=lf

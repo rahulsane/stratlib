@@ -1,0 +1,31 @@
+{
+  "model": "typesafe-ai/jev",
+  "answers": {
+    "wedging": {
+      "type": "choice",
+      "choice": "present",
+      "probabilities": {"present": 0.85, "absent": 0.10, "uncertain": 0.05},
+      "confidence": 0.62
+    },
+    "handle_drift": {
+      "type": "choice",
+      "choice": "erratic",
+      "probabilities": {"orderly": 0.10, "erratic": 0.80, "uncertain": 0.10},
+      "confidence": 0.55
+    },
+    "handle_volume": {
+      "type": "choice",
+      "choice": "uncertain",
+      "probabilities": {"drying": 0.25, "mixed": 0.25, "uncertain": 0.50},
+      "confidence": 0.10
+    }
+  },
+  "usage": {"input_tokens": 2500, "output_tokens": 60},
+  "provider_metadata": {
+    "gateway": {
+      "routing": {"originalModelId": "typesafe-ai/jev", "finalProvider": "typesafe-ai", "canonicalSlug": "typesafe-ai/jev"},
+      "generationId": "gen_synthetic_offline_fixture",
+      "cost": "0.000105"
+    }
+  }
+}

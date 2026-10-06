@@ -1,0 +1,562 @@
+[
+ {
+  "slug": "checklist-trend-filters",
+  "title": "Does a trend filter improve the top-10 checklist?",
+  "strategy": "Traveling Trader",
+  "summary": "Compare the original top-10 portfolio with a market filter, a stock filter, and both together. The selection rules stay fixed across the four variations.",
+  "documents": [
+   {
+    "path": "traveling_trader/checklist_top10_trend.md",
+    "title": "Findings and methodology"
+   }
+  ],
+  "runs": [
+   "tt_checklist_qual_top10",
+   "tt_checklist_qual_top10_*"
+  ],
+  "note": "Exploratory follow-up. The 2022 onward period was already inspected in the parent study."
+ },
+ {
+  "slug": "checklist-top-ten",
+  "title": "Ranking the checklist: all passers or the top 10?",
+  "strategy": "Traveling Trader",
+  "summary": "A quarterly momentum ranking narrows the checklist to ten stocks. Compare it with the original equal-allocation portfolio and inspect the selection mechanics.",
+  "documents": [
+   {
+    "path": "traveling_trader/checklist_top10.md",
+    "title": "Findings and methodology"
+   }
+  ],
+  "runs": [
+   "tt_checklist_qual_ew",
+   "tt_checklist_qual_top10"
+  ],
+  "note": "Exploratory follow-up. The later-period results are not an untouched holdout."
+ },
+ {
+  "slug": "checklist-portfolio-construction",
+  "title": "The checklist, four ways to build a portfolio",
+  "strategy": "Traveling Trader",
+  "summary": "Compare risk-sized positions, an SPY cash allocation, equal allocation, and a trailing-only checklist. Forward-estimate proxies and their limitations are documented alongside the results.",
+  "documents": [
+   {
+    "path": "traveling_trader/checklist_compare.md",
+    "title": "Portfolio comparison"
+   },
+   {
+    "path": "traveling_trader/checklist_fwd.md",
+    "title": "Forward-proxy baseline"
+   },
+   {
+    "path": "traveling_trader/checklist_fwd_spy.md",
+    "title": "Idle capital in SPY"
+   },
+   {
+    "path": "traveling_trader/checklist_fwd_ew.md",
+    "title": "Equal allocation"
+   },
+   {
+    "path": "traveling_trader/checklist_qual_ew.md",
+    "title": "Trailing-only checklist"
+   }
+  ],
+  "runs": [
+   "tt_checklist_fwd",
+   "tt_checklist_fwd_spy",
+   "tt_checklist_fwd_ew",
+   "tt_checklist_qual_ew"
+  ]
+ },
+ {
+  "slug": "traveling-trader-overview",
+  "title": "Traveling Trader: the rules put to the test",
+  "strategy": "Traveling Trader",
+  "summary": "An overview of the dip ladder, fundamentals checklist, EMA trade, timing rules, and put hedge. Each major experiment has a detailed report in this library.",
+  "documents": [
+   {
+    "path": "traveling_trader/backtests.md",
+    "title": "Study overview"
+   },
+   {
+    "path": "traveling_trader/rules.md",
+    "title": "Rules extracted from the videos"
+   }
+  ]
+ },
+ {
+  "slug": "index-dip-ladder",
+  "title": "Buying the dip versus a monthly investment",
+  "strategy": "Traveling Trader",
+  "summary": "Test cash reserves deployed at index drawdowns against regular monthly purchases. S&P 500 and QQQ results cover several reserve rules and rolling investment windows.",
+  "documents": [
+   {
+    "path": "traveling_trader/ladder.md",
+    "title": "Findings and methodology"
+   }
+  ]
+ },
+ {
+  "slug": "ema-pullback",
+  "title": "The 9/21 EMA pullback trade",
+  "strategy": "Traveling Trader",
+  "summary": "Portfolio backtests and an event study of the EMA pullback setup, with exits on either the first or second close below the 21-day EMA.",
+  "documents": [
+   {
+    "path": "traveling_trader/ema.md",
+    "title": "Findings and methodology"
+   }
+  ],
+  "runs": [
+   "tt_ema_first",
+   "tt_ema_second"
+  ]
+ },
+ {
+  "slug": "fundamentals-checklist",
+  "title": "Does the fundamentals checklist select better stocks?",
+  "strategy": "Traveling Trader",
+  "summary": "Test the valuation, profitability, leverage, and cash-flow rules as quarterly screens, including a separate 2011 to 2015 holdout.",
+  "documents": [
+   {
+    "path": "traveling_trader/quality.md",
+    "title": "Findings and methodology"
+   }
+  ]
+ },
+ {
+  "slug": "market-timing-rules",
+  "title": "VIX spikes, summer seasonality, and midterm years",
+  "strategy": "Traveling Trader",
+  "summary": "Event studies of the market-timing rules across the S&P 500 and QQQ, with unconditional returns and alternate calendar windows for comparison.",
+  "documents": [
+   {
+    "path": "traveling_trader/timing.md",
+    "title": "Findings and methodology"
+   }
+  ]
+ },
+ {
+  "slug": "index-put-hedge",
+  "title": "What does a standing index-put hedge cost?",
+  "strategy": "Traveling Trader",
+  "summary": "Compare put budgets, strike prices, pricing assumptions, and seasonal hedging rules in a simulated S&P 500 portfolio.",
+  "documents": [
+   {
+    "path": "traveling_trader/hedge.md",
+    "title": "Findings and methodology"
+   }
+  ]
+ },
+ {
+  "slug": "nash-quality-screen",
+  "title": "Tom Nash's quality screen, with and without rule 7",
+  "strategy": "Tom Nash",
+  "summary": "Operating-margin and free-cash-flow versions of the checklist, with sector exclusions, blend and sleeve portfolios, and a separately labelled post-hoc data cleanup.",
+  "documents": [
+   {
+    "path": "nash_screen/report.md",
+    "title": "Findings and methodology"
+   }
+  ],
+  "files": [
+   "nash_screen/results.json",
+   "nash_screen/results_clean.json"
+  ]
+ },
+ {
+  "slug": "nash-rule-study",
+  "title": "Testing the Nash rules before building the portfolio",
+  "strategy": "Tom Nash",
+  "summary": "An individual-rule study across holdout, in-sample, and later periods, followed by portfolio construction tests using the stated selection criteria.",
+  "documents": [
+   {
+    "path": "nash_rules/report.md",
+    "title": "Findings and methodology"
+   }
+  ],
+  "files": [
+   "nash_rules/scan.json",
+   "nash_rules/final.json"
+  ]
+ },
+ {
+  "slug": "episodic-pivot-robustness",
+  "title": "Episodic pivot: does the result survive nearby settings?",
+  "strategy": "Episodic pivot",
+  "summary": "Vary the gap threshold, holding period, and SPY filter around the corrected strategy. Inspect the neighboring parameter grid and the report's robustness checks.",
+  "documents": [
+   {
+    "path": "ep_robustness_report.md",
+    "title": "Robustness findings"
+   }
+  ],
+  "runs": [
+   "ep_grid_*"
+  ]
+ },
+ {
+  "slug": "episodic-pivot-corrected",
+  "title": "Episodic pivot, after correcting liquidity and exits",
+  "strategy": "Episodic pivot",
+  "summary": "Re-run the strategy with liquidity measured before the signal and a corrected partial-sale rule. Compare three exits, standalone positions, SPY overlays, and cash reserves.",
+  "documents": [
+   {
+    "path": "ep_fixed_report.md",
+    "title": "Corrections and results"
+   }
+  ],
+  "runs": [
+   "ep_fixed_*"
+  ]
+ },
+ {
+  "slug": "episodic-pivot-cash-and-overlay",
+  "title": "Episodic pivot: idle cash, T-bills, and an SPY overlay",
+  "strategy": "Episodic pivot",
+  "summary": "A closer look at the SPY-filtered strategy's exposure, trade concentration, and use of idle capital, with cash, T-bill, and SPY-overlay variations.",
+  "documents": [
+   {
+    "path": "ep_filterB_report.md",
+    "title": "Exposure and portfolio findings"
+   }
+  ],
+  "runs": [
+   "filter_episodic_pivot_B",
+   "filter_episodic_pivot_B_*"
+  ],
+  "note": "Historical experiment using the original liquidity and exit rules. See the corrected episodic-pivot report for the subsequent fixes."
+ },
+ {
+  "slug": "episodic-pivot-position-sizing",
+  "title": "Episodic pivot: increasing risk per trade",
+  "strategy": "Episodic pivot",
+  "summary": "Keep the signals fixed and vary the equity risk and position cap. Compare return, drawdown, cash constraints, and the largest trade losses.",
+  "documents": [
+   {
+    "path": "ep_risk_comparison.md",
+    "title": "Position-sizing findings"
+   }
+  ],
+  "runs": [
+   "ep_gap*_risk*"
+  ],
+  "note": "Historical experiment using the original liquidity and exit rules. A later report documents the corrected strategy."
+ },
+ {
+  "slug": "episodic-pivot-signals",
+  "title": "Episodic pivot: gaps, neglect, and exit rules",
+  "strategy": "Episodic pivot",
+  "summary": "The initial earnings-gap experiment. Compare gap thresholds, the neglected-stock condition, and three exit rules across the same test periods.",
+  "documents": [
+   {
+    "path": "ep_comparison.md",
+    "title": "Signal and exit findings"
+   }
+  ],
+  "runs": [
+   "ep_gap*_A5",
+   "ep_gap*_C10",
+   "ep_gap*_D10"
+  ],
+  "note": "Initial experiment. Later research corrected the signal-day liquidity test and the day-three partial-sale rule."
+ },
+ {
+  "slug": "market-filter-comparison",
+  "title": "Do market filters help the breakout strategies?",
+  "strategy": "Cross-strategy",
+  "summary": "Six market filters applied to Qullamaggie breakouts, Minervini VCPs, and episodic pivots. Open positions keep their exit rules while filters gate new signals.",
+  "documents": [
+   {
+    "path": "filter_comparison.md",
+    "title": "Market-filter findings"
+   }
+  ],
+  "runs": [
+   "filter_*_[A-F]"
+  ]
+ },
+ {
+  "slug": "minervini-vcp",
+  "title": "Minervini's trend template and VCP",
+  "strategy": "Minervini",
+  "summary": "A volatility-contraction setup following the trend template, tested with two exit approaches. Includes signal counts and low-volume breakout handling.",
+  "documents": [
+   {
+    "path": "minervini_comparison.md",
+    "title": "Findings and methodology"
+   }
+  ],
+  "runs": [
+   "minervini_vcp_*"
+  ]
+ },
+ {
+  "slug": "breakout-entry-rules",
+  "title": "Qullamaggie breakout: when to enter",
+  "strategy": "Qullamaggie",
+  "summary": "Compare pivot entries, strong closes, volume confirmation, and intraday entries. Stop-limit variations and the shorter intraday-data window stay in the same report.",
+  "documents": [
+   {
+    "path": "entry_comparison.md",
+    "title": "Entry-rule findings"
+   }
+  ],
+  "runs": [
+   "entries_*"
+  ]
+ },
+ {
+  "slug": "breakout-exit-rules",
+  "title": "Qullamaggie breakout: when to exit",
+  "strategy": "Qullamaggie",
+  "summary": "Replay the original breakout entries under different stops, targets, time exits, and moving-average trails. The report distinguishes trade-level and portfolio-level results.",
+  "documents": [
+   {
+    "path": "exit_comparison.md",
+    "title": "Exit-rule findings"
+   }
+  ],
+  "runs": [
+   "exits_*"
+  ]
+ },
+ {
+  "slug": "qullamaggie-breakout",
+  "title": "Qullamaggie breakout: 10-day or 20-day trail?",
+  "strategy": "Qullamaggie",
+  "summary": "The original breakout study, comparing two moving-average trails and a worst-case entry-day assumption for each.",
+  "documents": [
+   {
+    "path": "qullamaggie_comparison.md",
+    "title": "Findings and methodology"
+   }
+  ],
+  "runs": [
+   "qullamaggie_*"
+  ]
+ },
+ {
+  "slug": "sp500-garp-index",
+  "title": "S&P 500 GARP Index: self-managed or ETF?",
+  "strategy": "S&P 500 GARP",
+  "summary": "S&P's growth-at-a-reasonable-price index rebuilt from its published rules and checked against SPGP's holdings and returns. Compares running it yourself with owning the ETF, before and after tax, from December 2015, with an approximate run from 2007.",
+  "documents": [
+   {
+    "path": "garp/report.md",
+    "title": "Findings and methodology"
+   }
+  ],
+  "files": [
+   "garp/results.json",
+   "garp/curves_main.csv",
+   "garp/curves_extended.csv",
+   "garp/holdings.csv",
+   "garp/trades_self_managed.csv"
+  ]
+ },
+ {
+  "slug": "msci-usa-quality-garp",
+  "title": "MSCI USA Quality GARP (iShares GARP): self-managed or ETF?",
+  "strategy": "MSCI USA Quality GARP",
+  "summary": "MSCI's growth-at-a-reasonable-price index explained step by step, tested on MSCI's official daily series back to 2002, with a rules-based rebuild to cost out running it yourself. Compared with the S&P 500 GARP study, SPY and growth benchmarks, before and after tax. The returns are MSCI's own; holdings, self-managed costs and taxes come from a rebuild that lacks MSCI's forecast and universe data, so they are approximate.",
+  "documents": [
+   {
+    "path": "mscigarp/report.md",
+    "title": "Findings, methodology and calculation"
+   }
+  ],
+  "files": [
+   "mscigarp/results.json",
+   "mscigarp/curves_main.csv",
+   "mscigarp/curves_full.csv",
+   "mscigarp/curves_extended.csv",
+   "mscigarp/holdings_rebuild.csv",
+   "mscigarp/trades_self_managed_rebuild.csv"
+  ]
+ },
+ {
+  "slug": "turtle-trading-etfs",
+  "title": "The Turtle Trading rules on six ETFs",
+  "strategy": "Turtle Trading",
+  "summary": "The 2003 Original Turtle Trading Rules run on SPY, QQQ, gold, silver, oil and long Treasuries from 2006, long and short, as written and with gross exposure capped at 2x and 1x. Compared with SPY and QQQ buy-and-hold, with trade statistics, crisis behaviour and cost sensitivity.",
+  "documents": [
+   {
+    "path": "turtle/report.md",
+    "title": "Findings, results and method"
+   }
+  ],
+  "files": [
+   "turtle/results.json",
+   "turtle/curves_full.csv",
+   "turtle/trades/full_S2_as_written.csv",
+   "turtle/trades/full_S1_as_written.csv",
+   "turtle/trades/full_S1_S2_as_written.csv"
+  ]
+ },
+ {
+  "slug": "turtle-trading-variations",
+  "title": "Turtle variations: without SPY and TLT, and long only",
+  "strategy": "Turtle Trading",
+  "summary": "Two follow-ups to the six-ETF Turtle test: long and short on QQQ, gold, silver and oil only, and System 2 long only. Each as written, capped at 2x and 1x gross exposure, and with smaller units, compared with SPY, QQQ and the original runs.",
+  "documents": [
+   {
+    "path": "turtle_variations/report.md",
+    "title": "Findings, results and hindsight check"
+   }
+  ],
+  "files": [
+   "turtle_variations/results.json",
+   "turtle_variations/curves_full.csv",
+   "turtle_variations/trades/full_v1_S2_as_written.csv",
+   "turtle_variations/trades/full_v1_S2_2x_cap.csv",
+   "turtle_variations/trades/full_v1_S2_1x_cap.csv",
+   "turtle_variations/trades/full_v2_S2_as_written.csv",
+   "turtle_variations/trades/full_v2_S2_2x_cap.csv",
+   "turtle_variations/trades/full_v2_S2_1x_cap.csv"
+  ],
+  "note": "Both variations drop what lost money in the first study's results, so they were chosen with hindsight. The report checks the choice against 2006-2015 alone."
+ },
+ {
+  "slug": "weekend-trend-trader",
+  "title": "Nick Radge's Weekend Trend Trader: two stop rules",
+  "strategy": "Weekend Trend Trader",
+  "summary": "The weekly breakout system (20-week high, 30% rate of change, index above its 10-week average, a 40% trailing stop that tightens to 10%) on US stocks from 2016. The stop as the book describes it against a recomputed stop that loosens again. The book gives no rule for choosing between signals, so random selection runs 200 times and is compared with momentum rankings and SPY.",
+  "documents": [
+   {
+    "path": "wtt/report.md",
+    "title": "Findings, results and method"
+   },
+   {
+    "path": "wtt/gap.md",
+    "title": "Why the published 18% differs"
+   }
+  ],
+  "runs": [
+   "wtt_*"
+  ],
+  "files": [
+   "wtt/results.json",
+   "wtt/montecarlo.csv",
+   "wtt/curves_combined.csv",
+   "wtt/gap.json"
+  ],
+  "note": "The fixed-ranking and median random runs are listed as variations; the headline is the distribution of random selections in the report."
+ },
+ {
+  "slug": "weekend-trend-trader-sp900",
+  "title": "Weekend Trend Trader on the S&P 500 and MidCap 400",
+  "strategy": "Weekend Trend Trader",
+  "summary": "The same rules and both stop variants, limited to stocks in the S&P 500 or S&P MidCap 400 at the signal week (point-in-time membership from the S&P 500 change log, and Wikipedia's S&P 400 list checked against archived IJH holdings). Random selection 200 times per universe, each index alone and both together, compared with the all-stocks study, SPY and IJH.",
+  "documents": [
+   {
+    "path": "wtt900/report.md",
+    "title": "Findings, results and method"
+   }
+  ],
+  "runs": [
+   "wtt900_*",
+   "wtt500_*",
+   "wtt400_*"
+  ],
+  "files": [
+   "wtt900/results.json",
+   "wtt900/montecarlo.csv",
+   "wtt900/curves_combined.csv"
+  ],
+  "note": "Follow-up to the all-stocks study. The S&P 400 history is reconstructed, not an official constituent file; the report shows how closely it matches IJH."
+ },
+ {
+  "slug": "weekend-trend-trader-qs",
+  "title": "A QuantifiedStrategies-style Weekend Trend Trader on the Russell 3000 and S&P 900",
+  "strategy": "Weekend Trend Trader",
+  "summary": "A reconstruction of the version QuantifiedStrategies published (18% on the Russell 3000, 20-23% on the S&P indexes since 1990): the same entries, a 40% trailing stop that never tightens, 10 positions of 10% and no costs. Run on point-in-time Russell 3000 members (from archived iShares holdings) and S&P 500 + MidCap 400 members, from 2016, with random selection 200 times, a 3-month ranking, and WTT as written on the same universes.",
+  "documents": [
+   {
+    "path": "wttqs/report.md",
+    "title": "Findings, results and rules"
+   }
+  ],
+  "runs": [
+   "wttqs_*"
+  ],
+  "files": [
+   "wttqs/results.json",
+   "wttqs/montecarlo.csv",
+   "wttqs/curves_combined.csv"
+  ],
+  "note": "QuantifiedStrategies' exact rules are members-only; the exit and ranking here are inferred from what they disclose."
+ },
+ {
+  "slug": "weekend-trend-trader-after-tax",
+  "title": "WTT and the QS-style version before and after tax",
+  "strategy": "Weekend Trend Trader",
+  "summary": "Both versions rerun under the reporting standard: point-in-time Russell 3000 and S&P 500 + MidCap 400 universes, a ranking chosen in advance (12-month momentum), dividends, top federal taxes paid from the account, SPY taxed the same way, SPY on margin at the same volatility, and the full volatility block, with random selection and robustness checks.",
+  "documents": [
+   {
+    "path": "wtt_std/report.md",
+    "title": "Findings, results and method"
+   }
+  ],
+  "files": [
+   "wtt_std/results.json",
+   "wtt_std/curves_combined.csv",
+   "wtt_std/montecarlo.csv",
+   "wtt_std/trades_wtt_r3000.csv",
+   "wtt_std/trades_wtt_sp900.csv",
+   "wtt_std/trades_qs_r3000.csv",
+   "wtt_std/trades_qs_sp900.csv"
+  ],
+  "note": "Taxes are an accounting layer: the trades are the same with and without them. Top federal rates, no state tax."
+ },
+ {
+  "slug": "ma-pullback-rayner-teo",
+  "title": "Rayner Teo's moving-average pullback, before and after tax",
+  "strategy": "MA pullback (Rayner Teo)",
+  "summary": "His 50/200 EMA pullback as a fixed daily rule: the third pullback into the 50-day EMA area after two completed tests, a hammer or bullish engulfing trigger, 1% risk. All eight combinations of the rules his articles disagree on (trend filter, stop, exit), on point-in-time S&P 500 + MidCap 400 and Russell 3000 members from 2016, under the reporting standard: dividends, taxes paid from the account, SPY taxed the same way, SPY at the same volatility, the volatility block, trade statistics (expectancy, payoff, profit factor, SQN, excursions), an every-signal study, random selection and robustness checks.",
+  "documents": [
+   {
+    "path": "ma_pullback/report.md",
+    "title": "Findings, results and method"
+   }
+  ],
+  "files": [
+   "ma_pullback/results.json",
+   "ma_pullback/curves_combined.csv",
+   "ma_pullback/montecarlo.csv",
+   "ma_pullback/trades_target-swing-above_sp900.csv",
+   "ma_pullback/trades_target-swing-rising_sp900.csv",
+   "ma_pullback/trades_target-entry-above_sp900.csv",
+   "ma_pullback/trades_target-entry-rising_sp900.csv",
+   "ma_pullback/trades_trail-swing-above_sp900.csv",
+   "ma_pullback/trades_trail-swing-rising_sp900.csv",
+   "ma_pullback/trades_trail-entry-above_sp900.csv",
+   "ma_pullback/trades_trail-entry-rising_sp900.csv",
+   "ma_pullback/trades_target-swing-above_r3000.csv",
+   "ma_pullback/trades_target-swing-rising_r3000.csv",
+   "ma_pullback/trades_target-entry-above_r3000.csv",
+   "ma_pullback/trades_target-entry-rising_r3000.csv",
+   "ma_pullback/trades_trail-swing-above_r3000.csv",
+   "ma_pullback/trades_trail-swing-rising_r3000.csv",
+   "ma_pullback/trades_trail-entry-above_r3000.csv",
+   "ma_pullback/trades_trail-entry-rising_r3000.csv"
+  ],
+  "note": "Discretionary parts of his method (which average the market respects, what counts as a test, how strong a rejection candle must be) had to be fixed as mechanical rules; the report lists each judgement call and moves it one notch in the robustness checks."
+ },
+ {
+  "slug": "ma-pullback-spy-qqq",
+  "title": "Rayner Teo's moving-average pullback on SPY and QQQ",
+  "strategy": "MA pullback (Rayner Teo)",
+  "summary": "The same rules and eight variants as the stock study, run on the two index ETFs from their first trading days (SPY from 1994, QQQ from 2000), under the reporting standard. As specified (third touch only) the rule traded 13 times in 33 years; two looser touch rules, added after counting and reported as departures, give up to 104 trades. Includes trade statistics, each ETF alone, an event study of the bounce against an ordinary uptrend day, taxes, SPY at the same volatility and robustness checks.",
+  "documents": [
+   {
+    "path": "ma_pullback_etf/report.md",
+    "title": "Findings, results and method"
+   }
+  ],
+  "files": [
+   "ma_pullback_etf/results.json",
+   "ma_pullback_etf/curves_long.csv"
+  ],
+  "note": "Two ETFs instead of stocks, an exception to the stocks-only rule of the reporting standard. The looser touch rules were added after seeing the signal count."
+ }
+]

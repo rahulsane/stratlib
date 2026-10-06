@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars (git ignores it) and fill in.
+
+domain      = "screener.example.com"
+alert_email = "you@example.com"
+
+# Site password while the FMP display license is pending. Make the hash as described in deploy/README.md,
+# then set basic_auth_hash = "" and run terraform apply + deploy/refresh.ps1 to open the site to everyone.
+basic_auth_user = "demo"
+basic_auth_hash = ""
+
+# Optional overrides
+# region             = "us-east-1"
+# instance_type      = "t4g.small"
+# monthly_budget_usd = 25

@@ -1,0 +1,191 @@
+# StratLib configuration.
+# Secrets (FMP_API_KEY, AI_GATEWAY_API_KEY) live in .env, never in this file.
+# Relative paths are resolved from the directory containing this file.
+
+fmp:
+  base_url: https://financialmodelingprep.com/stable
+  # FMP Premium allows 750 calls per minute. Every script and the GUI share one
+  # limiter through data.ratelimit_db_path, so this cap applies to all of them
+  # combined. Calls are also spaced evenly (60 / calls_per_minute seconds apart).
+  calls_per_minute: 700
+  max_retries: 5 # retries on 429, 5xx, and network errors
+  backoff_base_seconds: 1.0
+  backoff_max_seconds: 60.0
+  timeout_seconds: 30
+  max_workers: 8 # concurrent requests during backfills
+
+data:
+  db_path: data/stratlib.db
+  ratelimit_db_path: data/ratelimit.db
+  log_dir: logs
+
+universe:
+  exchanges: [NYSE, NASDAQ, AMEX]
+  # FMP's screener returns one share class per company unless this is true.
+  include_all_share_classes: false
+  screener_page_size: 5000
+  # The universe list is served from the cache until it is this old.
+  refresh_hours: 20
+
+prices:
+  # Daily history kept per symbol. Raising this later downloads the older
+  # range on the next backfill.
+  history_years: 5
+  # FMP's EOD endpoint returns an in-progress bar for today while the market
+  # is open. Today's bar is only stored after this hour, US Eastern time.
+  eod_final_hour_et: 18
+  # Index and proxy ETFs for market direction (M). SPY and QQQ carry the
+  # volume used if FMP's index volume proves unreliable.
+  market_symbols: ["^GSPC", "^IXIC", "SPY", "QQQ"]
+  # On each update the first fetched bar overlaps the last stored bar. If the
+  # closes differ by more than this percent, FMP has re-adjusted the history
+  # (usually a split) and the whole history is downloaded again.
+  restate_tolerance_pct: 0.5
+  # Seed for --sample, so repeated sample runs use the same tickers and hit
+  # the cache.
+  sample_seed: 7
+
+backtest:
+  initial_capital: 100000
+  max_holdings: 10
+  default_years: 1
+  raise_cash: true # sell the weakest holdings when the market's allowed exposure falls below them
+  # Trend leaders (Backtest page strategy): the rules the nine-year rule study supported.
+  trend_min_rs: 90 # RS rating at least this
+  trend_min_sales_growth_pct: 20 # latest quarterly sales growth, year over year
+  trend_min_dollar_volume_m: 0 # average daily trading value, USD millions; 0 for no floor
+  trend_loss_cap_pct: 0 # sell a holding this far below its cost; 0 for no cap (the nine-year test did better without)
+
+# Scan strategies: the research strategies the workspace can screen, hold and alert on. Every default
+# reproduces the configuration its research tested (research/strategies, research/output), so the values
+# below only mark the settings worth knowing; src/stratlib/strategy_params.py lists all of them. Every
+# scan strategy also accepts min_price, min_dollar_volume_m, risk_pct, max_position_pct and
+# market_filter (A none, B SPY above its 50-day average, C QQQ 10 over 20, D breadth, E highs minus
+# lows, F B and D). A position saves the values in force when it was opened. The liquidity floor was
+# lowered from the research's $20M to $5M on 2026-10-01; the backtests read it too.
+strategies:
+  qullamaggie:
+    min_dollar_volume_m: 5 # liquidity floor, 20-session average dollar volume (research: 20)
+    min_adr_pct: 4 # 20-day average daily range, %
+    max_stop_adr: 1 # skip a trade whose stop is further than this many daily ranges below entry
+    trail_sma: 10 # 10 as specified, or 20
+  minervini:
+    min_dollar_volume_m: 5
+    rs_min_pct: 70 # relative-strength percentile among liquid stocks
+    exit: c10 # c10: a third on day 3, then a 10-day trail; half20: half at +20%, then a 50-day trail
+  episodic_pivot:
+    min_dollar_volume_m: 5
+    gap_pct: 20
+    market_filter: B # the corrected research runs required SPY above its 50-day average
+    exit: c10 # c10, time20 or trail10
+  ema_pullback:
+    min_dollar_volume_m: 5
+    exit_rule: first # sell at the first or second close below the 21-day EMA
+  tt_checklist:
+    min_dollar_volume_m: 5
+    top_n: 10 # stocks held, ranked by 63-session return among the checklist's passers
+    trend_gate: none # none, stock, market or both: entry-only 200-day gates
+  nash_quality:
+    min_dollar_volume_m: 5
+    margin: FCF # FCF or OM, the margin rule 3 tests
+    exclude_cyclicals: false # rule 7
+    data_guards: true # the research's post-hoc cleanup of FMP data errors
+  # The MSCI USA Quality GARP Select Index (iShares GARP's), rebuilt on the S&P 500 from MSCI's rules
+  # (research/mscigarp_index.py). An index has no liquidity floor and no risk sizing: min_price,
+  # min_dollar_volume_m, risk_pct and max_position_pct are not read.
+  msci_garp:
+    growth_variant: proxy # proxy: trailing EPS growth for the missing short-term forecast; methodology: leave both forecasts out
+    warmup_reviews: 12 # reviews rebuilt before the latest, so the buffer for current members acts as it would have
+
+jev:
+  enabled: true # on-demand advisory reviews in Stock detail
+  # Gateway lists only this alias as of 2026-09-29. Record the returned model;
+  # the underlying version may not be exposed. Never use TypeSafe directly.
+  model: typesafe-ai/jev
+  timeout_seconds: 30
+  max_retries: 2
+
+# Percentages are percentage points, not fractions.
+thresholds:
+  min_price: 15
+  min_avg_volume: 400000 # average daily shares over 50 sessions
+  max_below_high_pct: 15
+  high_sessions: 252
+  short_ma_sessions: 50
+  long_ma_sessions: 200
+  volume_sessions: 50
+  rs_quarter_sessions: 63
+  rs_recent_weight: 2 # weights for four separate quarters: 2, 1, 1, 1
+  rs_min: 80
+  industry_sessions: 126
+  industry_top: 40
+  eps_growth_pct: 25
+  eps_acceleration_min: 2 # increasing YoY rates in 2 of 3 comparisons
+  sales_growth_pct: 25
+  margin_near_high_pct: 5 # latest margin >= 95% of the 12-quarter maximum
+  annual_eps_growth_pct: 25
+  roe_min_pct: 17
+  cash_flow_above_eps_pct: 20
+  shares_max_growth_pct: 0 # total change across three years (four annual statements)
+  shares_latest_max_growth_pct: 0 # latest annual change must also be flat or falling
+  debt_equity_max_growth_pct: 0 # total change across three years
+  one_time_item_pct: 20 # identifiable adjustments as % of continuing income
+  max_quarter_age_days: 190
+  max_annual_age_days: 550
+  # Passing rule, chosen 2026-09-29: quarterly EPS, quarterly sales and RS must
+  # pass, plus 5 of the other 8 checks (at least 6 measurable). Spec: 8 and 8.
+  scored_checks_required: 5
+  min_measurable_scored_checks: 6
+  # Phase 3. market_index_rule chooses which index state determines M; "both"
+  # (the specification's reading) lets the weaker index decide.
+  distribution_decline_pct: 0.2
+  distribution_window_sessions: 25
+  distribution_pressure_count: 4
+  distribution_correction_count: 5
+  follow_through_gain_pct: 1.25
+  follow_through_min_day: 4
+  market_volume_stale_sessions: 5 # constant/invalid index volume uses its ETF proxy
+  distribution_expiry_gain_pct: 5 # IBD: a distribution day stops counting after a 5% rally above its close; 0 disables
+  market_index_rule: average # both | either | sp500 | nasdaq | average; chosen 2026-09-29 (spec default: both)
+  # Graded market rule, chosen 2026-09-29. Distribution days only reach "under
+  # pressure"; a correction needs a 10% close below the uptrend's peak or an
+  # undercut of the rally low. Spec: 0 (five distribution days end the uptrend).
+  correction_drawdown_pct: 10
+  distribution_heavy_count: 6
+  # Share of the portfolio that may be invested. Spec: 100 in a confirmed uptrend, else 0.
+  exposure_confirmed_pct: 100
+  exposure_late_confirmed_pct: 80 # confirmed with one distribution day short of pressure
+  exposure_new_uptrend_pct: 60 # cap for the first sessions after a follow-through
+  exposure_new_uptrend_sessions: 10
+  exposure_pressure_pct: 40
+  exposure_heavy_pressure_pct: 20
+  base_lookback_weeks: 78
+  base_max_weeks: 65
+  base_recent_weeks: 3 # retain bases that broke out within this many weeks
+  cup_min_weeks: 7 # cup only; handle is additional
+  cup_min_depth_pct: 12
+  cup_max_depth_pct: 33
+  cup_correction_max_depth_pct: 50
+  cup_side_min_weeks: 2 # trough must be at least two weeks from either rim
+  base_rim_tolerance_pct: 5 # recovery to within this % of the left rim / middle peak
+  handle_min_weeks: 1
+  handle_max_weeks: 2
+  handle_max_depth_pct: 12 # tighten to 8 for a shallower handle
+  handle_volume_max_ratio: 1.0 # strictly below the cup's mean daily volume
+  cup_pivot_offset: 0.10
+  cup_without_handle_min_weeks: 7 # chosen 2026-09-29: O'Neil's cup without handle (spec: 0, pattern off)
+  double_bottom_min_weeks: 7
+  flat_min_weeks: 5
+  flat_max_depth_pct: 15
+  flat_prior_breakout_weeks: 26 # chosen 2026-09-29: second-stage flat bases only (spec: 0)
+  flat_prior_advance_pct: 20 # the flat base's high at least 20% above the earlier base's pivot
+  buy_zone_max_pct: 5
+  buy_zone_entry_weeks: 3 # chosen 2026-09-29: buy in the zone up to 3 weeks after breakout (spec: 0, breakout day only)
+  breakout_volume_pct: 40
+  breakout_volume_sessions: 50 # prior sessions, excluding the breakout itself
+  # Phase 4. Alerts use completed daily closes; the stop takes priority over a hold.
+  stop_loss_pct: 7
+  profit_target_pct: 20
+  fast_gain_pct: 20
+  fast_gain_weeks: 3 # calendar weeks from the recorded breakout
+  minimum_hold_weeks: 8 # calendar weeks from that same breakout
