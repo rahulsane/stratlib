@@ -1,0 +1,9 @@
+# Allow-list: the image needs only the package, its config and the job script.
+*
+!pyproject.toml
+!README.md
+!config.yaml
+!src
+!deploy/job/run_daily.py
+**/__pycache__
+**/*.pyc
