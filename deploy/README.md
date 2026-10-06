@@ -134,3 +134,94 @@ terraform -chdir=deploy\terraform destroy
 
 This deletes the instance, the Elastic IP, the bucket and its contents, the IAM role and the budget. Remove
 the DNS record afterwards.
+
+## Daily update in the cloud
+
+`daily.tf` replaces the manual `stratlib backfill` and `stratlib screen` runs. At 6:15 pm New York time on
+weekdays, EventBridge Scheduler starts a Fargate task. The task downloads the database from S3, runs the
+backfill and every strategy's screen, uploads the database back and exits. Nothing runs between jobs.
+
+```
+EventBridge Scheduler ──▶ Fargate task (4 vCPU, 16 GB, x86)        S3 data bucket (versioned)
+  weekdays 18:15 ET         deploy/job/run_daily.py  ◀── download ── db/stratlib.db
+                              stratlib backfill                       │
+                              stratlib screen --strategy <each>  ── upload ──▶ (3 days of old versions kept)
+                              (optional) publish + refresh the web instance
+failure ──▶ EventBridge rule ──▶ SNS ──▶ email to alert_email
+```
+
+**The cloud copy is now the primary database.** Your PC's `data\stratlib.db` goes stale unless you pull it.
+
+### Cost
+
+About 20 minutes of a 4 vCPU, 16 GB Fargate task a day. At on-demand us-east-1 prices that is roughly $0.08 a
+run, or about $2 a month, plus about $0.30 a month for the versioned 4.3 GB database in S3. These figures are
+estimates; check the Fargate pricing page. Raise or lower `daily_vcpu` and `daily_memory_mb` after looking at the
+task's real peak memory in CloudWatch Container Insights or the log.
+
+### One-time setup
+
+1. Create the resources, then put the FMP key in the secret (it never goes through Terraform state):
+
+   ```powershell
+   cd deploy\terraform
+   terraform apply
+   aws secretsmanager put-secret-value --secret-id (terraform output -raw daily_secret_arn) --secret-string "your-fmp-key"
+   ```
+
+   Confirm the subscription email from AWS that goes to `alert_email`, or failure alerts are not delivered.
+
+2. Build and push the image (needs Docker running):
+
+   ```powershell
+   .\deploy\job\build-push.ps1
+   ```
+
+3. Seed the bucket with your current database. Stop `stratlib web` and any backfill first:
+
+   ```powershell
+   .\deploy\db-sync.ps1 -Direction push
+   ```
+
+4. Run it once by hand and watch the log group `/stratlib/daily` in CloudWatch:
+
+   ```powershell
+   Invoke-Expression (terraform -chdir=deploy\terraform output -raw daily_run_now)
+   ```
+
+From then on it runs on its own. Rebuild the image with `build-push.ps1` after changing the code.
+
+### Using the results on your PC
+
+```powershell
+.\deploy\db-sync.ps1 -Direction pull    # stop `stratlib web` first
+```
+
+Don't run `stratlib backfill` on the PC and the task at the same time: they share FMP's 750 calls a minute but
+not a rate limiter. Don't push a PC database over the cloud one unless you mean to; `push` refuses without `-Force`.
+
+### Options
+
+| Variable | Default | Effect |
+|---|---|---|
+| `daily_schedule`, `daily_timezone` | `cron(15 18 ? * MON-FRI *)`, `America/New_York` | When it runs. |
+| `daily_enabled` | `true` | `false` pauses the schedule. |
+| `daily_vcpu`, `daily_memory_mb`, `daily_storage_gb` | 4, 16384, 40 | Task size. The scratch disk must hold the database with room to grow. |
+| `daily_publish_site` | `false` | `true` also publishes the public snapshot and refreshes the web instance, as `refresh.ps1` does. The code on the instance is still the last bundle `refresh.ps1` uploaded. |
+
+### Rolling back a bad run
+
+The bucket keeps non-current versions for 3 days. List them with
+`aws s3api list-object-versions --bucket <daily_data_bucket> --prefix db/` and restore one with
+`aws s3api copy-object` using `--copy-source "<bucket>/db/stratlib.db?versionId=<id>"`.
+
+### When a run fails
+
+An email arrives with the reason. A failed screen does not stop the others, and a failed backfill skips the
+screens; the database is uploaded either way, since the backfill resumes per symbol. Read the log with:
+
+```powershell
+aws logs tail /stratlib/daily --since 2h --region us-east-1
+```
+
+Rerun with the `daily_run_now` command. On holidays the backfill finds no new bars and costs about one call per symbol.

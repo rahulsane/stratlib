@@ -2,3 +2,5 @@
 *.sh       text eol=lf
 *.tftpl    text eol=lf
 *.service  text eol=lf
+Dockerfile text eol=lf
+job/*.py text eol=lf
