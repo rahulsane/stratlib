@@ -1,0 +1,38 @@
+# Secrets
+.env
+
+# Local data, cache, and logs
+data/
+public/
+logs/
+research/cache/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Local browser review evidence
+.impeccable/review/
+
+# Terraform (deploy/terraform): keep .terraform.lock.hcl, ignore state and local settings
+deploy/terraform/.terraform/
+deploy/terraform/*.tfstate
+deploy/terraform/*.tfstate.*
+deploy/terraform/terraform.tfvars
+deploy/terraform/tfplan
+
+# Not for the public repo
+# Terraform plan output
+deploy/terraform/plan.txt
+# Local assistant and design-tool working files
+.codex/
+.impeccable/
+# Data derived from Financial Modeling Prep (its terms limit redistribution): saved research
+# output and raw API responses used as test fixtures. Keep them locally.
+research/output/
+tests/fixtures/fmp/

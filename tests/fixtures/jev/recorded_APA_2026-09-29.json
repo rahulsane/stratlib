@@ -1,0 +1,71 @@
+{
+  "model": "typesafe-ai/jev",
+  "answers": {
+    "wedging": {
+      "type": "choice",
+      "choice": "uncertain",
+      "confidence": 0.22,
+      "probabilities": {"uncertain": 0.48, "absent": 0.37, "present": 0.15}
+    },
+    "handle_drift": {
+      "type": "choice",
+      "choice": "orderly",
+      "confidence": 0.48,
+      "probabilities": {"erratic": 0.05, "uncertain": 0.29, "orderly": 0.66}
+    },
+    "handle_volume": {
+      "type": "choice",
+      "choice": "drying",
+      "confidence": 0.54,
+      "probabilities": {"mixed": 0.26, "uncertain": 0.05, "drying": 0.69}
+    }
+  },
+  "usage": {"input_tokens": 7288, "output_tokens": 128},
+  "provider_metadata": {
+    "gateway": {
+      "routing": {
+        "originalModelId": "typesafe-ai/jev",
+        "resolvedProvider": "digitalocean",
+        "fallbacksAvailable": ["typesafe-ai"],
+        "planningReasoning": "System credentials planned for: digitalocean, typesafe-ai. Total execution order: digitalocean(system) → typesafe-ai(system)",
+        "canonicalSlug": "typesafe-ai/jev",
+        "finalProvider": "typesafe-ai",
+        "modelAttemptCount": 1,
+        "modelAttempts": [{
+          "canonicalSlug": "typesafe-ai/jev",
+          "success": true,
+          "providerAttemptCount": 2,
+          "providerAttempts": [
+            {
+              "provider": "digitalocean",
+              "credentialType": "system",
+              "success": false,
+              "error": "Service temporarily unavailable",
+              "startTime": 1790660038612,
+              "endTime": 1790660038718,
+              "providerRequestId": "ad4803a4-a15e-4418-897a-01209949622b",
+              "statusCode": 503
+            },
+            {
+              "provider": "typesafe-ai",
+              "credentialType": "system",
+              "success": true,
+              "startTime": 1790660038723,
+              "endTime": 1790660038935,
+              "statusCode": 200
+            }
+          ]
+        }],
+        "totalProviderAttemptCount": 2
+      },
+      "cost": "0.000306096",
+      "marketCost": "0.000306096",
+      "surchargeCost": "0",
+      "gatewayCost": "0.000306096",
+      "inferenceCost": "0.000306096",
+      "inputInferenceCost": "0.000306096",
+      "outputInferenceCost": "0",
+      "generationId": "gen_01M3NTFKWXXP7JXFJCSS67NE6W"
+    }
+  }
+}

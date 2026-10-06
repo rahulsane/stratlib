@@ -1,0 +1,50 @@
+#!/bin/bash
+# First-boot setup for the public screener. Runs once, from EC2 user data.
+# The app itself arrives later, when deploy/refresh.ps1 uploads a release and runs stratlib-refresh over SSM.
+set -euxo pipefail
+export DEBIAN_FRONTEND=noninteractive
+
+# 2 GB swap file as headroom for the 2 GB instance.
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
+# Wait for outbound internet before installing anything (up to 10 minutes).
+for attempt in $(seq 1 120); do
+  curl -s --max-time 5 -o /dev/null https://checkip.amazonaws.com && break
+  [ "$attempt" -eq 120 ] && { echo "No outbound internet after 10 minutes" >&2; exit 1; }
+  sleep 5
+done
+
+APT="apt-get -o DPkg::Lock::Timeout=300"
+$APT update
+$APT install -y python3-venv curl unzip gnupg
+
+# Caddy from its own repository, for a current release.
+curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list
+chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg /etc/apt/sources.list.d/caddy-stable.list
+$APT update
+$APT install -y caddy
+
+# AWS CLI v2 in /usr/local/bin, where SSM run-command finds it.
+curl -sSfL https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip -o /tmp/awscliv2.zip
+unzip -q /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install --update
+rm -rf /tmp/aws /tmp/awscliv2.zip
+
+# Service account and directories.
+id stratlib >/dev/null 2>&1 || useradd --system --home-dir /opt/stratlib --shell /usr/sbin/nologin stratlib
+install -d -o stratlib -g stratlib -m 0755 /opt/stratlib /opt/stratlib/public /opt/stratlib/logs
+echo "${bucket}" > /etc/stratlib-bucket
+
+# If a release is already in the bucket (a rebuilt instance), deploy it now.
+if /usr/local/bin/aws s3api head-object --bucket "${bucket}" --key release/app.tar.gz >/dev/null 2>&1; then
+  /usr/local/bin/aws s3 cp "s3://${bucket}/release/refresh.sh" /usr/local/sbin/stratlib-refresh --only-show-errors
+  chmod 755 /usr/local/sbin/stratlib-refresh
+  /usr/local/sbin/stratlib-refresh "${bucket}"
+fi

@@ -1,0 +1,21 @@
+# Written by Terraform (deploy/terraform/Caddyfile.tftpl) and installed by stratlib-refresh.
+${domain} {
+	encode zstd gzip
+%{ if basic_auth_hash != "" ~}
+	basic_auth {
+		${basic_auth_user} ${basic_auth_hash}
+	}
+%{ endif ~}
+	handle /robots.txt {
+		header Content-Type text/plain
+		respond "User-agent: *
+Disallow: /
+" 200
+	}
+	handle {
+		reverse_proxy 127.0.0.1:8601
+	}
+	log {
+		output file /var/log/caddy/access.log
+	}
+}

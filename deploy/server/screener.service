@@ -1,0 +1,24 @@
+[Unit]
+Description=StratLib public screener (read-only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stratlib
+Group=stratlib
+WorkingDirectory=/opt/stratlib/app
+ExecStart=/opt/stratlib/venv/bin/stratlib web --public --db /opt/stratlib/public/stratlib.db --host 127.0.0.1 --port 8601
+Restart=on-failure
+RestartSec=5
+
+# The app only writes its log files and NiceGUI's working files under app/.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/stratlib/app /opt/stratlib/logs
+MemoryMax=1500M
+
+[Install]
+WantedBy=multi-user.target
