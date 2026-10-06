@@ -94,8 +94,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
   }
 }
 
-# Image registry, log group and the FMP key. Terraform creates the secret but not its value, so the key never
-# enters the state: see deploy/README.md for the put-secret-value command.
+# Image registry, log group and the FMP key. The key comes from FMP_API_KEY in the repository's .env file (or from
+# -var fmp_api_key=...). It is stored in the secret, and so also in terraform.tfstate, which git ignores: keep that
+# file private.
 
 resource "aws_ecr_repository" "daily" {
   name         = "${var.name}-daily"
@@ -119,10 +120,38 @@ resource "aws_cloudwatch_log_group" "daily" {
   retention_in_days = 30
 }
 
+variable "fmp_api_key" {
+  description = "FMP API key for the daily update. Leave empty to read FMP_API_KEY from the .env file in the repository root."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+locals {
+  env_file = "${path.root}/../../.env"
+  fmp_api_key = var.fmp_api_key != "" ? var.fmp_api_key : (
+    fileexists(local.env_file)
+    ? try(sensitive(trimspace(regex("(?m)^FMP_API_KEY=[\"']?([^\"'#\\r\\n]+)", file(local.env_file))[0])), "")
+    : ""
+  )
+}
+
 resource "aws_secretsmanager_secret" "fmp" {
   name                    = "${var.name}/fmp-api-key"
   description             = "Financial Modeling Prep API key for the daily update"
   recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "fmp" {
+  secret_id     = aws_secretsmanager_secret.fmp.id
+  secret_string = local.fmp_api_key
+
+  lifecycle {
+    precondition {
+      condition     = local.fmp_api_key != ""
+      error_message = "No FMP key found. Put FMP_API_KEY=... in .env at the repository root, or pass -var fmp_api_key=..."
+    }
+  }
 }
 
 # Roles. The execution role pulls the image, writes logs and reads the secret. The task role is what the code runs as.
