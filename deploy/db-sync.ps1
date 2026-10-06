@@ -64,13 +64,7 @@ else {
     if (-not (Test-Path $db)) { throw "No database at $db." }
     Write-Host '== Folding the write-ahead log into the file and checking it' -ForegroundColor Cyan
     $python = Join-Path $root '.venv\Scripts\python.exe'
-    $check = @'
-import sqlite3, sys
-c = sqlite3.connect(sys.argv[1])
-c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-print(c.execute("PRAGMA quick_check").fetchone()[0])
-'@
-    $result = Invoke-Native 'database check' { & $python -I -c $check $db }
+    $result = Invoke-Native 'database check' { & $python -I (Join-Path $PSScriptRoot 'db_check.py') $db }
     if ($result -ne 'ok') { throw "The database failed its integrity check: $result" }
     Write-Host "== Uploading to s3://$bucket/$key" -ForegroundColor Cyan
     Invoke-Native 'upload' { aws s3 cp $db "s3://$bucket/$key" --region $region --only-show-errors }
