@@ -36,3 +36,6 @@ deploy/terraform/plan.txt
 # output and raw API responses used as test fixtures. Keep them locally.
 research/output/
 tests/fixtures/fmp/
+
+# Claude Code worktrees
+.claude/worktrees/
