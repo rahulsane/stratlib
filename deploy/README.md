@@ -161,13 +161,16 @@ task's real peak memory in CloudWatch Container Insights or the log.
 
 ### One-time setup
 
-1. Create the resources, then put the FMP key in the secret (it never goes through Terraform state):
+1. Create the resources. Terraform reads `FMP_API_KEY` from the `.env` file in the repository root and stores it in
+   the Secrets Manager secret (`-var fmp_api_key=...` overrides it; the apply stops if neither is set):
 
    ```powershell
    cd deploy\terraform
    terraform apply
-   aws secretsmanager put-secret-value --secret-id (terraform output -raw daily_secret_arn) --secret-string "your-fmp-key"
    ```
+
+   The key is also saved in plaintext in `terraform.tfstate`. Git ignores that file, but keep it private. After
+   rotating the key in `.env`, run `terraform apply` again to update the secret.
 
    Confirm the subscription email from AWS that goes to `alert_email`, or failure alerts are not delivered.
 
