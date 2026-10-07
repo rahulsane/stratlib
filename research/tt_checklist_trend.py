@@ -1,6 +1,6 @@
 """Compare D10 with three fixed, entry-only 200-session trend gates.
 
-Baseline: the saved D10, ranked quarterly by trailing 63-session return, top ten.
+Baseline: D10, portfolio D ranked quarterly by trailing 63-session return, top ten.
 M: previous-session SPY close strictly above its trailing 200-session SMA.
 S: previous-session stock close strictly above its trailing 200-session SMA.
 MS: both conditions. A full window of valid closes is required. Gates apply
@@ -16,9 +16,8 @@ The original same-close ranking/execution convention, slippage, price-only
 stock returns, no margin, and zero interest on idle cash remain unchanged.
 Only the new trend signals are explicitly lagged. The 2022+ split is inherited
 and is exploratory, not fresh out-of-sample validation. No parameter sweep.
-
-Run: .venv/Scripts/python.exe research/tt_checklist_trend.py
 """
+# Run: .venv/Scripts/python.exe research/tt_checklist_trend.py
 
 from __future__ import annotations
 
@@ -33,16 +32,20 @@ import numpy as np
 
 import benchmarks
 import panel as P
+import report_rules as rr
 from engine import OUTPUT, PERIODS, PERIOD_TITLES, Rules, run_test, simulate
 from strategies.tt_checklist_top10 import RankedChecklist
 from strategies.tt_checklist_trend import TrendGatedChecklist
 from tt_checklist_compare import ROWS, load
-from tt_checklist_top10 import cells, holdings
+from tt_checklist_top10 import cells, checklist_parts, holdings
 
 
 BASE = "tt_checklist_qual_top10"
 OUT = OUTPUT / "traveling_trader"
 REPORT = OUT / "checklist_top10_trend.md"
+GATES = {"D10 + M": "new entries only while SPY's previous close is above its 200-session SMA",
+         "D10 + S": "new entries only while the stock's previous close is above its 200-session SMA",
+         "D10 + MS": "new entries only while both SPY and the stock closed above their 200-session SMAs"}
 VARIANTS = {
     "D10": (BASE, False, False),
     "D10 + M": (BASE + "_market200", True, False),
@@ -50,6 +53,11 @@ VARIANTS = {
     "D10 + MS": (BASE + "_both200", True, True),
 }
 DISPLAY_PERIODS = ["combined", "out_of_sample", "in_sample"]
+
+
+def run_description(label: str) -> str:
+    """The run's description in the report's variation panel: its gate, then the study's rules."""
+    return f"{label}: {GATES[label]}.\n\n{__doc__}"
 
 
 def write_csv(path, rows):
@@ -98,6 +106,20 @@ def gate_summary(strategy, trades, start, end):
         "unheld_top10_candidates_blocked": sum(r["new_purchase_blocked"] for r in decisions),
         "stock_sma_missing": sum(not np.isfinite(r["prior_stock_sma200"]) for r in rows),
     }, decisions
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report adds trend filters to D10, the top-10 version of the Traveling Trader checklist portfolio. A "
+         "filter can only block a new purchase; it never sells."],
+        *checklist_parts(),
+        ["The filters, checked on each quarterly entry date with the previous session's prices:", "",
+         "- M: SPY's close above its 200-session simple moving average.",
+         "- S: the stock's own close above its 200-session simple moving average.",
+         "- MS: both.",
+         "", "The top ten are chosen first; a name the filter blocks is not replaced by the 11th, and its share of "
+         "the cash goes to the other new names. Held stocks are not sold when a filter turns off."],
+        rr.TERMS)
 
 
 def main():
@@ -156,7 +178,8 @@ def main():
         if label != "D10":
             if not report_only:
                 print(f"Running {label}: frozen 200-session previous-close entry gates...", flush=True)
-                run_test(panel, name, TrendGatedChecklist, params, bench, rules=rules, description=__doc__)
+                run_test(panel, name, TrendGatedChecklist, params, bench, rules=rules,
+                         description=run_description(label))
             cached = json.loads((OUTPUT / name / "results.json").read_text(encoding="utf-8"))
             assert cached["params"] == params and cached["rules"] == saved["rules"]
             assert cached["data_through"] == through
@@ -197,8 +220,9 @@ def main():
                   f"DD {abs(c['max_dd']):.3f}%, Sharpe {m['sharpe']:.3f}", flush=True)
         del strategy
 
-    lines = ["# D10: market and individual-stock trend filters", "", __doc__.strip(), "",
+    lines = ["# The top-ten checklist portfolio (D10) with market and stock trend filters", "", __doc__.strip(), "",
              f"Data through {through}. Each period starts from $100,000.", "",
+             *rules_section(),
              "## What changed", "",
              "D10 is the original ranked top-ten portfolio. M adds the SPY trend gate, S adds the stock trend gate, "
              "and MS requires both. The top ten and their rank-based exits are determined before either gate. "
@@ -208,7 +232,7 @@ def main():
              "If some new names are rejected, the cash-split rule can give the remaining new names larger allocations. "
              "The maximum entry weight stays 33 1/3%; this is not a constant 10%-per-stock portfolio.", "",
              "The unfiltered baseline reproduced every saved equity observation and trade field in all three periods. "
-             "The new strategy with both gates disabled also matched it exactly. Data and screening caches were held fixed.", ""]
+             "The new strategy with both gates disabled also matched it exactly. The price data and the quarterly screens were held fixed.", ""]
     for period in DISPLAY_PERIODS:
         table = {label: cells(data[label], period) for label in VARIANTS}
         lines += [f"## {PERIOD_TITLES[period]}", "", "| Metric | " + " | ".join(VARIANTS) + " |",
@@ -332,11 +356,8 @@ def main():
               "- Each period starts from fresh capital. The combined run's calendar-2022 return can differ from "
               "the standalone 2022+ run because of holdings carried from 2021.", "",
               "## Files", "",
-              "- Runner: `research/tt_checklist_trend.py`; strategy: `research/strategies/tt_checklist_trend.py`.",
-              "- Comparison and validation: `research/output/traveling_trader/checklist_top10_trend.json`.",
-              "- Quarterly activity: `research/output/traveling_trader/checklist_top10_trend_quarters.csv`.",
-              "- Each `research/output/tt_checklist_qual_top10_*200/` folder contains the engine report, results, "
-              "trade lists, equity curves, quarterly gate signals, and per-period entry decisions.", ""]
+              "- The study JSON download holds the comparison and the validation record.",
+              "- Each run's results, trades and equity curves are under *Compare variations*.", ""]
     REPORT.write_text("\n".join(lines), encoding="utf-8")
     payload = {"description": __doc__, "data_through": through, "baseline_verified": verification,
                "screen_sha256": screen_hash, "baseline_results_sha256": hashlib.sha256(saved_path.read_bytes()).hexdigest(),

@@ -19,6 +19,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, Rules, _f, run_test, simulate  # noqa: E402
 from lab import load_all  # noqa: E402
 from strategies.exit_replay import ExitReplay, entries_from_test  # noqa: E402
@@ -45,6 +46,25 @@ EXITS = {
 }
 UNLIMITED = Rules(max_positions=10**6, allow_margin=True)
 LONG = 20  # "held longer than 20 days": more than 20 trading sessions
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report takes the trades of the Qullamaggie breakout test (10-day SMA version) and replays them with "
+         "13 exit rules. The signals, entry days, entry prices and initial stops are the same for every exit; only "
+         "the way out changes."],
+        rr.QULLAMAGGIE_SETUP,
+        ["Exit rules. The initial stop stays in place under every rule, as a floor.", "", *rr.exits(*EXITS)],
+        ["Two ways of measuring:", "",
+         "- Per-trade columns (expectancy to *held > 20 days*) replay every recorded entry with no position or cash "
+         "limit, so all 13 exits are measured on the same trades. A stock cannot be held twice, so an entry that "
+         "arrives while its stock is still held under a slow exit is replayed separately.",
+         "- Portfolio columns (CAGR, drawdown, Sharpe, average invested) replay the entries under the portfolio rules "
+         "below. A slow exit ties up slots and cash, so some entries find no room; *blocked* counts them.",
+         f"- *Held > {LONG} days* is the share of the total R that came from trades held more than {LONG} sessions. "
+         "When the total is a loss, the R of the longer trades and of the rest are shown instead.",
+         "- Max DD (rank) ranks the exits from the smallest drawdown (1) to the largest."],
+        rr.GROUND_RULES, rr.TERMS)
 
 
 def trade_stats(trades) -> dict:
@@ -113,11 +133,12 @@ def main() -> None:
              f"({', '.join(f'{PERIOD_TITLES[p]} {len(entries[p])}' for p in PERIODS)} entries).", "",
              "- Per-trade columns use every recorded entry, replayed without position or cash limits, so all "
              "exits are measured on the same trades.",
-             "- Portfolio columns (CAGR, drawdown, Sharpe, exposure) replay the entries under the ground rules "
+             "- Portfolio columns (CAGR, drawdown, Sharpe, exposure) replay the entries under the portfolio rules below "
              "(10 positions, no margin); \"blocked\" counts entries that found no slot or cash there, or whose "
              "stock was still held from an earlier entry.",
              f"- \"Held > {LONG} days\" is the share of the total R from trades held more than {LONG} trading "
              "sessions.", ""]
+    lines += rules_section()
     for period in ("out_of_sample", "in_sample", "combined"):
         order = sorted(EXITS, key=lambda c: -per_trade[c][period]["expectancy_r"])
         dd_rank = {c: k + 1 for k, c in enumerate(sorted(EXITS, key=lambda c: portfolio[c][period]["max_drawdown"]))}

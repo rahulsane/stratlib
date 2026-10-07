@@ -145,7 +145,7 @@ def report(res: dict) -> str:
         "- Index constituents, January 1990 to 2025, Norgate data free of survivorship bias, **no commissions or "
         "slippage**, **10 positions of 10%**: S&P 100 14.9%, S&P 500 19.9%, Nasdaq 100 16.5%, MidCap 400 22.9%, "
         "SmallCap 600 9.1% (from 1995), Russell 2000 0.1% (81% drawdown); average holding 65–121 weeks.", "",
-        "WTT as written held positions about 16 weeks in this harness. The table changes one difference at a time "
+        "WTT as written held positions about 16 weeks in this backtest. The table changes one difference at a time "
         f"on 2016–2026 data ({res['seeds']} random selections each; 5th / median / 95th percentile CAGR):", "",
         table(["Universe", "Change", "CAGR", "Max drawdown", "Weeks held", "Win rate", "Average win / loss"], rows), "",
         "How often the 10-week filter turned down, on the S&P 500 (price index):", "",

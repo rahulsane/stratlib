@@ -1,4 +1,4 @@
-"""Test 4: the Traveling Trader's timing rules. Rules fixed before any results were seen.
+"""The Traveling Trader's timing rules. Rules fixed before any results were seen.
 
 (a) VIX spikes. Event = the first VIX close at or above a threshold (25, 30, 40) with no close at or above it in
     the previous 60 sessions. S&P 500 total return over the next 21, 63, 126 and 252 sessions, against every
@@ -24,6 +24,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import report_rules as rr  # noqa: E402
 import tt_data as T  # noqa: E402
 
 HORIZONS = (21, 63, 126, 252)
@@ -135,11 +136,36 @@ def midterm_section(idx: T.Index, lines: list[str], res: dict) -> None:
     lines.append("")
 
 
+def rules_section() -> list[str]:
+    return rr.section(
+        ["Three market-timing claims from the Traveling Trader's videos, each tested as an event study against "
+         "ordinary days. The rules were fixed before any results were seen."],
+        ["(a) Buy VIX spikes. An event is the first VIX close at or above a threshold (25, 30 or 40) with no close at "
+         "or above it in the previous 60 sessions. The tables give the S&P 500's total return over the next 21, 63, "
+         "126 and 252 sessions after each event, against the same horizons from every session since 1990. The QQQ "
+         "tables do the same from 1999."],
+        ["(b) June 22 to July 22. Buy at the last close on or before June 22 and sell at the last close on or before "
+         "July 22 (his claim: QQQ bought at the June 22 close was positive in 93% of the last 15 years, median "
+         "+4.7%). Tested on QQQ 1999–2025, the S&P 500 1950–2025, and 2011–2025 for both. The same 30-day window "
+         "started on every other day of the year ranks June 22 by the share of years positive and by the median "
+         "return."],
+        ["(c) Midterm election years, every fourth year from 1950 to 2022, against all other years, S&P 500 "
+         "1950–2025:", "",
+         "- from the September options-expiry close (third Friday) to the election-day close;",
+         "- from the April 30 close to the October 31 close (\"May to October is weak\");",
+         "- from October 31 of the midterm year to October 31 of the next (\"always positive after a midterm\")."],
+        ["Data: S&P 500 daily closes from 1950, with Shiller's monthly dividends less a 0.09% a year fund fee for "
+         "total returns; QQQ with dividends from 1999; VIX closes from 1990. (a) uses total returns, (b) and (c) price "
+         "returns. There are no costs or taxes. VIX events number in the tens and there are only 19 midterm years, so "
+         "the uncertainty is wide."],
+    )
+
+
 def main() -> None:
     spx = T.load_spx()
     qqq = T.load_qqq(spx)
     vix = T.load_vix()
-    lines = ["# Test 4: timing rules", "", "Rules: docstring of `tt_timing.py`.", "", "## (a) VIX spikes, total returns", ""]
+    lines = ["# The Traveling Trader's timing rules", "", *rules_section(), "## (a) VIX spikes, total returns", ""]
     res = {}
     vix_section(spx, T.vix_on(spx, vix), lines, res)
     vix_section(qqq, T.vix_on(qqq, vix), lines, res)

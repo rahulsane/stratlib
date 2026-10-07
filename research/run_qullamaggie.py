@@ -11,6 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, Rules, _f, run_test, top_share  # noqa: E402
 from lab import load_all  # noqa: E402
 from strategies.qullamaggie import DEFAULTS, Qullamaggie  # noqa: E402
@@ -59,6 +60,23 @@ ROWS = [
 ]
 
 
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report compares two trailing exits for the Qullamaggie breakout and runs each again with a worst-case "
+         "assumption about the entry day. The setup and entry are the same in all four tests."],
+        rr.QULLAMAGGIE_SETUP,
+        ["Exit: sell a third at the close of the 3rd session after entry and move the stop on the rest up to the entry "
+         "price (breakeven). From the next session, sell the rest at the first close below the trailing SMA.", "",
+         "- 10-day SMA trail: the exit as Qullamaggie describes it (C10 in the exit-rule report).",
+         "- 20-day SMA trail: the same with the 20-day SMA (C20).",
+         "- Worst-case entry day: any low below the stop on the entry day is assumed to come after the entry, so the "
+         "trade is stopped out that day. This shows how much the up-day assumption above is worth."],
+        rr.GROUND_RULES,
+        rr.TERMS + ["- Top 10% of trades, share of profit: the net profit of the best tenth of trades as a share of the "
+                    "total. When the total is a loss, the dollar results of the best tenth and of the rest are shown "
+                    "instead."])
+
+
 def main() -> None:
     panel, bench = load_all()
     results = {}
@@ -69,6 +87,7 @@ def main() -> None:
         print(f"{name}: done")
     lines = ["# Qullamaggie breakout: 10-day vs 20-day SMA trail", "",
              f"Data through {panel.dates[-1]}. Reports and trade lists are in each test's folder.", ""]
+    lines += rules_section()
     for period in PERIODS:
         lines += [f"## {PERIOD_TITLES[period]}", "",
                   "| | " + " | ".join(label for label, _ in results.values()) + " |",

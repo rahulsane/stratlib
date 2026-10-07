@@ -490,7 +490,7 @@
   "slug": "weekend-trend-trader-after-tax",
   "title": "WTT and the QS-style version before and after tax",
   "strategy": "Weekend Trend Trader",
-  "summary": "Both versions rerun under the reporting standard: point-in-time Russell 3000 and S&P 500 + MidCap 400 universes, a ranking chosen in advance (12-month momentum), dividends, top federal taxes paid from the account, SPY taxed the same way, SPY on margin at the same volatility, and the full volatility block, with random selection and robustness checks.",
+  "summary": "Both versions rerun on point-in-time Russell 3000 and S&P 500 + MidCap 400 universes, with a ranking chosen in advance (12-month momentum), dividends, top federal taxes paid from the account, SPY taxed the same way, vol-matched SPY on margin, and risk measures against SPY, plus random selection and robustness checks.",
   "documents": [
    {
     "path": "wtt_std/report.md",
@@ -512,7 +512,7 @@
   "slug": "ma-pullback-rayner-teo",
   "title": "Rayner Teo's moving-average pullback, before and after tax",
   "strategy": "MA pullback (Rayner Teo)",
-  "summary": "His 50/200 EMA pullback as a fixed daily rule: the third pullback into the 50-day EMA area after two completed tests, a hammer or bullish engulfing trigger, 1% risk. All eight combinations of the rules his articles disagree on (trend filter, stop, exit), on point-in-time S&P 500 + MidCap 400 and Russell 3000 members from 2016, under the reporting standard: dividends, taxes paid from the account, SPY taxed the same way, SPY at the same volatility, the volatility block, trade statistics (expectancy, payoff, profit factor, SQN, excursions), an every-signal study, random selection and robustness checks.",
+  "summary": "His 50/200 EMA pullback as a fixed daily rule: the third pullback into the 50-day EMA area after two completed tests, a hammer or bullish engulfing trigger, 1% risk. All eight combinations of the rules his articles disagree on (trend filter, stop, exit), on point-in-time S&P 500 + MidCap 400 and Russell 3000 members from 2016, with dividends, taxes paid from the account, SPY taxed the same way, vol-matched SPY, risk measures against SPY, trade statistics (expectancy, payoff, profit factor, SQN, excursions), an every-signal study, random selection and robustness checks.",
   "documents": [
    {
     "path": "ma_pullback/report.md",
@@ -546,7 +546,7 @@
   "slug": "ma-pullback-spy-qqq",
   "title": "Rayner Teo's moving-average pullback on SPY and QQQ",
   "strategy": "MA pullback (Rayner Teo)",
-  "summary": "The same rules and eight variants as the stock study, run on the two index ETFs from their first trading days (SPY from 1994, QQQ from 2000), under the reporting standard. As specified (third touch only) the rule traded 13 times in 33 years; two looser touch rules, added after counting and reported as departures, give up to 104 trades. Includes trade statistics, each ETF alone, an event study of the bounce against an ordinary uptrend day, taxes, SPY at the same volatility and robustness checks.",
+  "summary": "The same rules and eight variants as the stock study, run on the two index ETFs from their first trading days (SPY from 1994, QQQ from 2000), before and after tax. As specified (third touch only) the rule traded 13 times in 33 years; two looser touch rules, added after counting and reported as departures, give up to 104 trades. Includes trade statistics, each ETF alone, an event study of the bounce against an ordinary uptrend day, taxes, vol-matched SPY and robustness checks.",
   "documents": [
    {
     "path": "ma_pullback_etf/report.md",
@@ -557,6 +557,6 @@
    "ma_pullback_etf/results.json",
    "ma_pullback_etf/curves_long.csv"
   ],
-  "note": "Two ETFs instead of stocks, an exception to the stocks-only rule of the reporting standard. The looser touch rules were added after seeing the signal count."
+  "note": "The looser touch rules were added after seeing the signal count."
  }
 ]

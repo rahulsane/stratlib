@@ -180,9 +180,8 @@ def findings(res: dict) -> str:
 def report(res: dict) -> str:
     cf, spy, mc, rb, ev, sb = res["configs"], res["spy"], res["mc"], res["robust"], res["every"], res["spy_block"]
     sp, sa = spy["combined/pre"], spy["combined/after"]
-    out = ["# Rayner Teo's moving-average pullback under the reporting standard", "",
-           f"Data through {res['data_through']}. Runner: `research/run_ma_pullback.py`; rules: "
-           "`src/stratlib/sim/strategies/ma_pullback.py`; tax accounting: `research/tax_accounting.py`. "
+    out = ["# Rayner Teo's moving-average pullback, before and after tax", "",
+           f"Data through {res['data_through']}. "
            "The rules, the eight variants and the ranking were fixed before any results. Method and assumptions at "
            "the end.", "", "## Findings", "", findings(res).strip(), "",
            "![After-tax growth and drawdowns](equity_drawdown.png)", ""]
@@ -402,7 +401,7 @@ def report(res: dict) -> str:
 
     # ------------------------------------------------------------------ method
     out += ["## Method and assumptions", "",
-            "Rules (fixed before any results; `src/stratlib/sim/strategies/ma_pullback.py`):",
+            "Rules (fixed before any results):",
             "- Indicators on split-adjusted daily bars: the 50- and 200-day EMAs of the close and the 20-day ATR "
             "(Wilder's smoothing). The area of value is the 50-day EMA ± 0.5 ATR.",
             "- Touch counting, one state machine per stock over the whole history: a pullback starts when the low "
@@ -434,7 +433,7 @@ def report(res: dict) -> str:
             "after the touch) and as a failure (a close below the area), \"just before\" the swing high (0.25 ATR), "
             "the 20-session slope for \"pointing higher\", the 20-day ATR, and EMAs rather than simple averages (he "
             "uses EMAs). The robustness table moves each of these one notch.", "",
-            "The reporting standard:",
+            "Dividends, taxes and benchmarks:",
             "- Dividends: included, credited at the ex-date to shares held at the previous close (split-adjusted).",
             "- Taxes: 40.8% on short-term gains and ordinary dividends, 23.8% on long-term gains and qualified "
             "dividends (top federal rates with the 3.8% net investment income tax); no state tax. Lots first in, "
@@ -463,6 +462,6 @@ def report(res: dict) -> str:
             "test, the 20-period ATR), \"The Trend Trading Strategy Guide\" (the 200 MA pointing higher, 2 ATR from "
             "entry, the nearest swing high), \"The Moving Average Indicator Guide\" (EMAs, the trailing exit) and "
             "\"The Complete Guide to Candlestick Patterns\" (the hammer and engulfing definitions).", "",
-            "Files: `results.json`, `findings.md`, `curves_combined.csv` (before- and after-tax curves), "
-            "`montecarlo.csv`, `trades_*.csv` (the portfolio's trades before tax), `every_signal_*.csv`."]
+            "Files: `results.json`, `curves_combined.csv` (before- and after-tax curves), `montecarlo.csv`, "
+            "`trades_*.csv` (the portfolio's trades before tax)."]
     return "\n".join(out) + "\n"

@@ -1,8 +1,7 @@
-"""Test 3b: the checklist with forward-estimate proxies, as a screen and as a portfolio. Rules fixed before
-any results were seen.
+"""The Traveling Trader's checklist with forward-estimate proxies, as a screen and as a portfolio. Rules fixed
+before any results were seen.
 
-Forward proxies, from per-quarter earnings histories (cached by research/earnings.py; EPS on today's
-split basis, like the panel's closes):
+Forward proxies, from per-quarter earnings histories (EPS on today's split basis, like the price history):
   NTM EPS at a date = the sum of the consensus EPS on the next four report dates after it. Each consensus is
       the one that stood just before its own report, so the figure embeds up to 12 months of hindsight: this
       is an upper bound for the rule, and only a failure is conclusive. All four estimates must exist and
@@ -11,26 +10,28 @@ split basis, like the panel's closes):
       oldest within 15 months).
   FWDG    NTM EPS > TTM EPS > 0 ("forward PE below the current PE: earnings are expected to grow").
   PEGF    forward PEG = (close / NTM EPS) / (100 x (NTM / TTM - 1)) at or below 1, with TTM > 0 and growth > 0.
-  PEHIST, ROIC15, DE1, FCFUP as in tt_quality.py.
+  PEHIST, ROIC15, DE1, FCFUP as in the trailing-checklist screen.
   QUALF   FWDG, PEHIST, PEGF, ROIC15, DE1 and FCFUP all pass (the checklist as he states it).
   CHEAPF  FWDG, PEGF and PEHIST (the valuation half).
-Screen: passers minus the universe, same universe, rebalances, periods and survival bar as tt_quality.py.
-Portfolio (engine, strategies/tt_checklist.py): on the first session of each calendar quarter, buy at the
+Screen: passers minus the universe, with the universe, rebalances, periods and survival bar of the
+trailing-checklist screen.
+Portfolio: on the first session of each calendar quarter, buy at the
 close every eligible stock that passes QUALF; extra signals ranked by 63-session return. Initial stop 20%
 below the entry, not trailed. Sell at a rebalance close when the stock no longer passes or cannot be
 evaluated. 1% of equity at risk per trade (a 5% position at the 20% stop), at most 20 positions, 10% cap;
-otherwise the ground rules (slippage, no margin, idle cash earns nothing). SPY with dividends as the
+otherwise the usual portfolio rules (slippage, no margin, idle cash earns nothing). SPY with dividends as the
 benchmark; periods 2016-21, 2022 on, combined; the out-of-sample period runs once.
 Report: trades, win rate, expectancy in R with its standard error, CAGR, CAGR minus SPY, max drawdown, Sharpe,
 yearly returns vs SPY, the ten largest winners with their share of total R, expectancy without the top five.
-Variants (command line), added 2026-09-30 after the first run showed the portfolio a third invested:
-  --ew   fully invested in the passers: at each rebalance the cash on hand is split equally among that
+Variants, added after the first run showed the portfolio only a third invested:
+  Equal weight  fully invested in the passers: at each rebalance the cash on hand is split equally among that
          session's entries, positions capped at a third of equity; stop and exits unchanged.
-  --spy  the original 5% positions with idle capital held in SPY (engine overlay), dividends reinvested.
-  --control  the hindsight-free checklist of tt_quality.py (QUAL: PE below own history, trailing PEG <= 1,
-         ROIC >= 15%, debt/equity < 1, FCF rising; no forward test), fully invested as in --ew. Isolates what
-         the forward proxies' foresight contributes.
+  SPY overlay  the original 5% positions with idle capital held in SPY, dividends reinvested.
+  Control  the hindsight-free checklist of the trailing screen (QUAL: PE below own history, trailing PEG <= 1,
+         ROIC >= 15%, debt/equity < 1, FCF rising; no forward test), fully invested as in the equal-weight
+         variant. Isolates what the forward proxies' foresight contributes.
 """
+# Variants on the command line: --ew (equal weight), --spy (SPY overlay), --control; none for the base portfolio.
 
 from __future__ import annotations
 
@@ -48,6 +49,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import earnings as E  # noqa: E402
 import nash_panels  # noqa: E402
 import panel as P  # noqa: E402
+import report_rules as rr  # noqa: E402
 from stratlib.app import open_context  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, Rules, run_test  # noqa: E402
 from lab import load_all  # noqa: E402
@@ -68,9 +70,67 @@ PARAMS = {"stop_pct": STOP_PCT, "equal_weight": VARIANT in ("ew", "control")}
 EW_RULES = Rules(risk_pct=1.0, max_positions=20, max_position_pct=100 / 3)
 RULES = {"base": Rules(risk_pct=1.0, max_positions=20, max_position_pct=10.0), "ew": EW_RULES, "control": EW_RULES,
          "spy": Rules(risk_pct=1.0, max_positions=20, max_position_pct=10.0, overlay_spy=True)}[VARIANT]
-TITLE = {"base": "5% positions, idle cash uninvested", "ew": "fully invested: cash split equally among the passers (cap 33%)",
-         "spy": "5% positions, idle capital in SPY",
-         "control": "hindsight-free checklist (trailing PEG, no forward test), fully invested equal weight"}[VARIANT]
+TITLES = {"base": "5% positions, idle cash uninvested", "ew": "fully invested: cash split equally among the passers (cap 33%)",
+          "spy": "5% positions, idle capital in SPY",
+          "control": "hindsight-free checklist (trailing PEG, no forward test), fully invested equal weight"}
+TITLE = TITLES[VARIANT]
+
+
+def run_description(variant: str) -> str:
+    """The run's description in the report's variation panel."""
+    title = TITLES[variant]
+    return (f"{title[0].upper()}{title[1:]}. The checklist portfolio; its tests, universe, stop and sizing are under "
+            "*Rules and assumptions* in the report.")
+
+
+def rules_section(variant: str = VARIANT) -> list[str]:
+    trailing = dict(zip(("PEHIST", "PEGT", "ROIC15", "DE1", "FCFUP"), rr.CHECKLIST_TRAILING[2:]))
+    return rr.section(
+        ["This test repeats the fundamentals-checklist screen with stand-ins for his two forward-looking tests, forward "
+         "PE and forward "
+         "PEG: first as a screen, then as a portfolio. The rules were fixed before any results were seen. The three "
+         "portfolio variants were added after the first run showed the portfolio only a third "
+         f"invested. This report is the variant *{TITLES[variant]}*."],
+        rr.CHECKLIST_SOURCE,
+        ["The data has no point-in-time analyst estimates, so the forward figures come from earnings histories:", "",
+         "- NTM EPS at a date is the sum of the consensus EPS for the next four reports after it, each as it stood "
+         "just before its own report. The estimate for a report a year away is the one made just before that report, so "
+         "the figure uses up to 12 months of information an investor did not yet have, and estimates made that late are "
+         "close to the actual result. That makes it an upper bound for the rule: only a failure is conclusive. All four "
+         "estimates must exist, and the fourth report must fall within 15 months.",
+         "- TTM EPS is the sum of the actual EPS of the last four reports on or before the date, all present and the "
+         "oldest within 15 months."],
+        ["Tests:", "",
+         "- FWDG: NTM EPS above TTM EPS, which is above zero (\"forward PE below the current PE\").",
+         "- PEGF: forward PEG = (close / NTM EPS) / (NTM / TTM − 1, in percent) of 1 or less, with TTM EPS and "
+         "growth positive.",
+         *(trailing[t] for t in ("PEHIST", "ROIC15", "DE1", "FCFUP")),
+         "- QUALF: FWDG, PEHIST, PEGF, ROIC15, DE1 and FCFUP all pass. This is the checklist as he states it.",
+         "- CHEAPF: FWDG, PEGF and PEHIST, the valuation half.",
+         "- PEGT, for the hindsight-free control" + trailing["PEGT"][len("- PEGT"):],
+         "- QUAL: PEHIST, PEGT, ROIC15, DE1 and FCFUP all pass, with no forward test. This is the control's "
+         "checklist."],
+        rr.CHECKLIST_UNIVERSE,
+        ["The screen scores each test as in the trailing-checklist screen, on the stocks with forward data: each "
+         "quarter, the passers' mean "
+         "return to the next rebalance minus the universe's, equal-weighted, price only. *pts/yr* is the quarterly average times 4, *t* its "
+         "t-statistic across quarters. A test survives with an in-sample (2016–2021) t of at least 3, a positive mean "
+         "in the 2011–2015 holdout and from 2022, and at least 4 positive in-sample years."],
+        [rr.CHECKLIST_PORTFOLIO[0] + " The portfolio buys QUALF passers, or QUAL passers in the control. When more "
+         "stocks pass than slots are free, the highest 63-session returns are bought first. Four ways to size it:", "",
+         "- 5% positions, idle cash uninvested: each trade risks 1% of equity, a 5% position at the 20% stop, with at "
+         "most 20 positions of at most 10% each. Idle cash earns nothing.",
+         "- 5% positions, idle capital in SPY: the same, with all capital not in trades held in SPY.",
+         "- Equal weight: at each rebalance the cash on hand is split equally among that session's buy orders, each "
+         "capped at a third of equity, at most 20 positions. The split counts orders later turned away for lack of a "
+         "slot, so some cash can stay idle despite the name.",
+         "- Hindsight-free control: the equal-weight portfolio with the QUAL checklist."],
+        ["Otherwise, as in the other stock backtests here: 0.10% slippage a side, 0.25% under $20 as traded, no margin, price-only "
+         "stock returns, SPY with dividends as the benchmark, and separate runs from $100,000 for 2016–2021, 2022 on "
+         "and 2016 on. *Expectancy without the top 5 trades* drops the five best trades by R. Statements are as "
+         "restated, and delisted stocks are thin before 2021."],
+        rr.TERMS,
+    )
 
 
 def load_earnings(symbols) -> dict:
@@ -238,14 +298,14 @@ def main() -> None:
     passes = sc["passes_qual"] if VARIANT == "control" else sc["passes"]
     pass_counts = sc["pass_counts_qual"] if VARIANT == "control" else sc["pass_counts"]
     Checklist.passes = passes
-    summary = run_test(panel, TEST_NAME, Checklist, PARAMS, bench, rules=RULES, description=f"{TITLE}.\n\n{__doc__}")
+    summary = run_test(panel, TEST_NAME, Checklist, PARAMS, bench, rules=RULES, description=run_description(VARIANT))
     res = summary["results"]
     stats = {period: trade_stats(read_trades(period)) for period in PERIODS}
 
-    lines = [f"# Test 3b: the checklist with forward-estimate proxies ({TITLE})", "", "Rules: docstring of `tt_checklist_fwd.py`. "
-             "The forward figures embed hindsight (see the docstring), so this is an upper bound for the rule.", "",
-             f"Data through {panel.dates[-1]}. Engine report and trade lists: `output/{TEST_NAME}/`.", "",
-             "## Portfolio", ""]
+    lines = [f"# The checklist with forward-estimate proxies ({TITLE})", "",
+             "The forward figures embed hindsight (see *Rules and assumptions*), so this is an upper bound for the rule.", "",
+             f"Data through {panel.dates[-1]}.", "",
+             *rules_section(), "## Portfolio", ""]
     hdr = "| | " + " | ".join(PERIOD_TITLES[p] for p in PERIODS) + " |"
     lines += [hdr, "|---|" + "---|" * len(PERIODS)]
 
@@ -289,7 +349,7 @@ def main() -> None:
     lines += ["", "Passing stocks per rebalance (main panel): " + ", ".join(f"{d[:7]} {n}" for d, n in pass_counts if d >= "2016")]
     T.OUT.mkdir(parents=True, exist_ok=True)
     (T.OUT / f"{REPORT}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    json.dump({"rules": __doc__, "variant": VARIANT, "engine": res, "trade_stats": stats, "spreads": spreads,
+    json.dump({"rules": __doc__, "variant": VARIANT, "portfolio": res, "trade_stats": stats, "spreads": spreads,
                "survivors": survivors, "pass_counts": pass_counts}, open(T.OUT / f"{REPORT}.json", "w"), indent=1, default=float)
     print("\n".join(lines))
 

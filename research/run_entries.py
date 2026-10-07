@@ -19,6 +19,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, _f, run_test, simulate  # noqa: E402
 from intraday import Intraday  # noqa: E402
 from lab import load_all  # noqa: E402
@@ -61,6 +62,40 @@ ROWS = [
     ("Skipped: stop limit", lambda m: f"{m['counts'].get('skipped_stop_rule', 0):,}"),
     ("Sold on low volume", lambda m: f"{m['exit_reasons'].get('breakout volume under 1.5x', 0):,}"),
 ]
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report keeps the Qullamaggie setup and its original exit and changes only how a trade is entered."],
+        rr.QULLAMAGGIE_SETUP,
+        ["Entry rules. Each keeps the one-ADR stop limit unless its name says otherwise.", "",
+         "- A, buy through the pivot: the buy-stop above. This is the baseline.",
+         "- B, strong close: the first session that trades above the pivot decides. The stock is bought at that "
+         "close if the close is above the pivot and in the top third of the day's range; otherwise the order is "
+         "dropped. The initial stop is that day's low.",
+         "- C, volume at least 1.5x: as A, but the position is sold at the entry day's close unless that day's volume "
+         "is at least 1.5 times the average of the previous 50 sessions.",
+         "- D, strong close and volume: B, and the breakout day must also pass C's volume test or the order is "
+         "dropped.",
+         "- E5 and E30, opening-range breakouts on one-minute bars: on a session that trades above the pivot, buy "
+         "when a one-minute bar after the first 5 (or 30) minutes trades above the higher of the pivot and the high "
+         "of those first minutes, at that bar's open if it opens above. The initial stop is the day's low up to the "
+         "entry. One-minute data covers only the last two years.",
+         "- Without the one-ADR stop limit: B and D stop at the breakout day's low and E at that day's low up to the "
+         "entry, usually further away than A's stop at the previous session's low. So the limit skips more of their "
+         "trades, and they also run with it lifted. For B and D both readings were fixed before any run."],
+        ["Exit, the same for every entry rule:", "", *rr.exits("C10")],
+        ["The last-two-years tables run A to E on the window where one-minute data exists, from fresh $100,000 each. "
+         "E cannot enter on days with no one-minute bars or where they disagree with the daily bar by more than 1.5%.",
+         "",
+         "Table rows: *Breakouts through the pivot* counts sessions that traded above a live order. *Not confirmed* "
+         "counts B and D breakouts that failed the close or volume test. *Skipped: stop limit* counts breakouts "
+         "whose stop was more than one ADR below the entry. *Sold on low volume* counts C trades sold at the entry "
+         "day's close.",
+         "",
+         "The last table groups the baseline's trades by where the breakout day closed in its range: (close − low) / "
+         "(high − low), in thirds. Entry-day stops are trades stopped out on the breakout day itself."],
+        rr.GROUND_RULES, rr.TERMS)
 
 
 def table(title: str, results: dict, labels: dict) -> list[str]:
@@ -112,6 +147,7 @@ def main() -> None:
         print(f"{code} (last two years): done")
 
     lines = ["# Entry rules for the Qullamaggie breakout", "", f"Data through {panel.dates[-1]}. {DESCRIPTION}", ""]
+    lines += rules_section()
     main_codes = ["A", "B", "C", "D"]
     for period in PERIODS:
         lines += table(PERIOD_TITLES[period], {c: full[c][period] for c in main_codes}, labels)

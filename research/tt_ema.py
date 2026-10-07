@@ -21,6 +21,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import report_rules as rr  # noqa: E402
 from engine import PERIOD_TITLES, PERIODS, Rules, _f, run_test, top_share  # noqa: E402
 from lab import load_all  # noqa: E402
 from strategies.ema_pullback import DEFAULTS, EmaPullback, ema, rolling  # noqa: E402
@@ -131,12 +132,49 @@ def period_stats(rows, spreads, a: str, b: str) -> dict:
     return out
 
 
+STRATEGY = [
+    "The 9/21 EMA pullback is the Traveling Trader's trend trade: buy a strong stock when it dips into its 9- and "
+    "21-day exponential moving averages (EMA), and sell when it closes below the 21-day. A stock signals at the "
+    "close of session T when:",
+    "",
+    "1. Trend. The 9-day EMA is above the 21-day EMA, the 21-day EMA is above the 50-day SMA, and the close is above "
+    "the 200-day SMA.",
+    "2. Trending stock. The highest close of the last 20 sessions is also the highest close of the last 126.",
+    "3. Pullback touch. The session's low reaches the 9-day EMA while the close holds at or above the 21-day EMA, "
+    "and the lows of the previous three sessions were all above the 9-day EMA, so this is a fresh pullback.",
+    "",
+    "Entry: buy at T's close. Initial stop: 3% below the 21-day EMA at entry, never moved.",
+    "",
+    "Exits, both fixed before any results:",
+    "",
+    "- First close: sell at the first close below the 21-day EMA.",
+    "- Second close: sell at the second close below the 21-day EMA, allowing one break and retest. The count resets "
+    "after 10 sessions back above it.",
+]
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report runs the 9/21 EMA pullback as a portfolio under the portfolio rules below, with two exits, then "
+         "studies every signal on its own."],
+        STRATEGY,
+        rr.GROUND_RULES,
+        ["The event study takes every signal from 2016 on, traded or not, with no portfolio limits. Each is bought at "
+         "the close with 0.10% slippage, held with the 3% stop and the first-close exit for at most 252 sessions, and "
+         "sold with 0.10% slippage. *Excess vs SPY* subtracts SPY's return over the same sessions. *Touch vs trend "
+         "universe* compares, day by day, the next 21 sessions' return of that day's signals with that of every liquid "
+         "stock passing conditions 1 and 2, touch or not; it gives the average daily difference, its t and the number "
+         "of days. Trades overlap in time, so the t-statistics overstate the evidence."],
+        rr.TERMS,
+    )
+
+
 def main() -> None:
     panel, bench = load_all()
     results = {}
     for name, params, label in VARIANTS:
         summary = run_test(panel, name, EmaPullback, {**DEFAULTS, **params}, bench,
-                           description=f"{label}.\n\n{EmaPullback.__doc__}")
+                           description="\n".join([f"{label[0].upper()}{label[1:]}.", "", *STRATEGY]))
         results[name] = (label, summary["results"])
         print(f"{name}: done", flush=True)
     strat = EmaPullback()
@@ -146,8 +184,8 @@ def main() -> None:
                "combined 2016 on": ("2016-01-01", "9999-12-31")}
     ev_stats = {k: period_stats(ev["trades"], ev["spreads"], a, b) for k, (a, b) in periods.items()}
 
-    lines = ["# Test 2: 9/21 EMA pullback trade", "", f"Data through {panel.dates[-1]}. Rules: `strategies/ema_pullback.py`; "
-             "engine reports and trade lists are in `output/tt_ema_first/` and `output/tt_ema_second/`.", ""]
+    lines = ["# The 9/21 EMA pullback trade", "", f"Data through {panel.dates[-1]}.", "",
+             *rules_section()]
     for period in PERIODS:
         lines += [f"## {PERIOD_TITLES[period]}", "", "| | " + " | ".join(label for label, _ in results.values()) + " |",
                   "|---|" + "---|" * len(results)]
@@ -173,7 +211,7 @@ def main() -> None:
         lines += ["", "Exit reasons (combined): " + ", ".join(f"{k} {v:,}" for k, v in sorted(s["reasons"].items(), key=lambda x: -x[1])), ""]
     T.OUT.mkdir(parents=True, exist_ok=True)
     (T.OUT / "ema.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    json.dump({"engine": {k: v[1] for k, v in results.items()}, "event_study": ev_stats},
+    json.dump({"portfolio": {k: v[1] for k, v in results.items()}, "event_study": ev_stats},
               open(T.OUT / "ema.json", "w"), indent=1, default=float)
     print("\n".join(lines))
 

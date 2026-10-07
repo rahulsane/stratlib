@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import earnings  # noqa: E402
 import market_filters as mf  # noqa: E402
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, _f, run_test, simulate  # noqa: E402
 from lab import load_all  # noqa: E402
 from strategies import episodic_pivot as ep  # noqa: E402
@@ -40,6 +41,29 @@ def strategies(panel):
                            {**ep.DEFAULTS, "gap_pct": 20, "neglected": False, "exit": ep.C10}),
         "minervini": ("Minervini VCP (exit a)", mv.Minervini(scan), {**mv.DEFAULTS, "exit": MINERVINI_EXIT_A}),
     }
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report adds six market filters to the best version of each of three strategies. A filter only "
+         "decides whether new trades may start; it never closes a position, and open trades keep their exits.", "",
+         "The table above defines the filters. Each is checked at the signal day's close. D counts the day's liquid "
+         "stocks that have a 50-day SMA; ETFs are left out because inverse ETFs rise when the market falls and "
+         "hundreds of index ETFs would swamp the count. For E, a new 52-week high is a high above the highest high of "
+         "the previous 251 sessions, and a new low likewise. *Share of OOS days on* is the share of sessions from 2022 "
+         "on when the filter allowed new trades."],
+        ["### Breakout: Qullamaggie, entry through the pivot, C10 exit", "", *rr.QULLAMAGGIE_SETUP, "", "Exit:", "",
+         *rr.exits("C10")],
+        ["### Episodic pivot: 20% gap, C10 exit", "", *rr.EPISODIC_PIVOT, "",
+         "The gap threshold is 20% and the neglected condition is off. " + rr.EP_SIGNAL_DAY_LIQUIDITY[0], "",
+         "Exit:", "", *rr.exits("C10")],
+        ["### Minervini VCP, exit (a)", "", *rr.MINERVINI, "", *rr.MINERVINI_EXIT_A],
+        ["### Reading the tables", "",
+         "The first table for each strategy runs it once per filter. The second takes the trades of the unfiltered "
+         "run (A) and splits them by whether each filter was on at their signal day, so the same trades are compared. "
+         "*t* is the difference in expectancy divided by its standard error; a value beyond about ±2 is unlikely to "
+         "be chance."],
+        rr.GROUND_RULES, rr.TERMS)
 
 
 def split(trades, panel, mask) -> dict:
@@ -85,6 +109,7 @@ def main() -> None:
     for code, label in mf.LABELS.items():
         lines.append(f"| {code} | {label} | {100 * masks[code][oos_days].mean():.0f}% |")
     lines.append("")
+    lines += rules_section()
     for key, (label, _, _) in strategies_labels().items():
         lines += [f"## {label}", "", "| Filter | OOS trades | OOS expectancy | OOS CAGR | OOS max DD | "
                   "IS expectancy | IS CAGR | Combined expectancy | Combined CAGR | Combined max DD |",

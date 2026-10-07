@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import earnings  # noqa: E402
 import market_filters as mf  # noqa: E402
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, Rules, _f, run_test, simulate  # noqa: E402
 from lab import load_all  # noqa: E402
 from run_ep import _ffill_2d  # noqa: E402
@@ -26,6 +27,28 @@ from strategies import episodic_pivot as ep  # noqa: E402
 PARAMS = {**ep.DEFAULTS, "gap_pct": 20, "neglected": False, "exit": ep.C10, "market_filter": "B"}
 HORIZONS = (1, 5, 10, 20, 60)
 SEED = 2026
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report looks closely at one version of the episodic pivot: 20% gap, no neglected condition, C10 exit, "
+         "0.5% risk, and market filter B, which allows new trades only when SPY closed above its 50-day SMA on the "
+         "signal day. It then asks what the idle capital could have earned."],
+        rr.EPISODIC_PIVOT,
+        rr.EP_SIGNAL_DAY_LIQUIDITY,
+        ["Exit:", "", *rr.exits("C10")],
+        ["Three runs of the same strategy:", "",
+         "- Base: idle cash earns nothing, as in the portfolio rules below.",
+         "- T-bills: idle cash earns the 3-month T-bill rate, by calendar days between sessions.",
+         "- " + rr.SPY_OVERLAY[0],
+         "", "Sections and columns:", "",
+         "- *CAGR / days with a position* and *CAGR / average capital invested* divide the base CAGR by the share of "
+         "days with a trade open and by the average share of equity in trades. They show the return on the capital "
+         "the strategy actually used, not something an account could earn.",
+         "- Section 5 shows five trades per period drawn at random (fixed seed), with the daily bars around each.",
+         "- Section 6 follows every signal that passed conditions 1 to 3 and filter B on a liquid stock, traded or not, "
+         "from the signal day's close. A delisted stock is held at its last close."],
+        rr.GROUND_RULES, rr.TERMS)
 
 
 def main() -> None:
@@ -46,7 +69,7 @@ def main() -> None:
     res = {k: v["results"] for k, v in runs.items()}
     periods = ("in_sample", "out_of_sample")
     lines = ["# Episodic pivot with the SPY filter: detailed report", "",
-             f"{desc}; 0.5% risk per trade. Data through {panel.dates[-1]}.", ""]
+             f"{desc}; 0.5% risk per trade. Data through {panel.dates[-1]}.", "", *rules_section()]
 
     # 1-3
     lines += ["## 1-3. Trades, exposure, return on invested capital, T-bill cash", "",

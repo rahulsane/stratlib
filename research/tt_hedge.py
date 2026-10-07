@@ -1,4 +1,4 @@
-"""Test 5: the cost of a rolling index put hedge. Rules fixed before any results were seen (pricing
+"""The cost of a rolling index put hedge. Rules fixed before any results were seen (pricing
 assumptions widened after a first run showed flat-VIX pricing makes out-of-the-money puts unrealistically cheap).
 
 S&P 500 total return 1990-2026 with the VIX. On each quarterly option expiry (the last session on or before
@@ -32,6 +32,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import report_rules as rr  # noqa: E402
 import tt_data as T  # noqa: E402
 
 START = "1990-03-16"
@@ -151,6 +152,35 @@ def episode_change(idx: T.Index, rows: np.ndarray, value: np.ndarray, a: str, b:
     return 100 * (value[kb] / value[ka] - 1)
 
 
+def rules_section() -> list[str]:
+    return rr.section(
+        ["The Traveling Trader says he hedges 5 to 10% of his portfolio in out-of-the-money index puts that expire "
+         "within 2 or 3 months. This test measures what a standing hedge like that would have cost an S&P 500 "
+         "portfolio from 1990, and what it saved in crashes. The rules were fixed before any results were seen; the "
+         "pricing assumptions were widened after a first run showed that pricing every strike at the VIX makes "
+         "out-of-the-money puts unrealistically cheap."],
+        ["The portfolio holds the S&P 500 with dividends reinvested, less a 0.09% a year fund fee. On each quarterly option expiry (the last session "
+         "on or before the third Friday of March, June, September and December) it is rebalanced: it buys puts on the "
+         "index that expire at the next quarterly expiry, and the rest holds the index. Puts are marked to market "
+         "daily and settle at expiry for the strike minus the index, if positive.", "",
+         "Two readings of \"hedge 5 to 10%\":", "",
+         "- Budget: spend 2.5% or 5% of the portfolio's value on puts each quarter.",
+         "- Notional: buy puts covering 50% or 100% of the portfolio's value, the classic protective put.",
+         "", "Strikes are 90% of the index (10% out of the money), with 95% and at-the-money variants. A seasonal "
+         "variant hedges only the September to December quarter."],
+        ["There are no historical option quotes here, so puts are priced with Black-Scholes, using the 3-month T-bill "
+         "rate and the index's trailing dividend yield. The implied volatility comes from the VIX in three ways:", "",
+         "- Flat: the VIX close itself. A lower bound, with no skew and no term premium.",
+         "- Central: the VIX plus 1 point of term premium plus 0.5 point per 1% out of the money, about 5 points more "
+         "at a 90% strike.",
+         "- High: the VIX × 1.2 plus 1 point plus 0.7 point per 1% out of the money."],
+        ["Benchmarks: the index alone, and 95% index with 5% cash, rebalanced on the same dates. The table gives CAGR, "
+         "the difference from the index's CAGR (the yearly cost of the hedge), the largest daily drawdown, the worst "
+         "calendar year, and the change in value over the 2000–02, 2007–09, 2020 and 2022 index declines. Cash earns "
+         "the 3-month T-bill rate. There are no taxes or trading costs beyond the model prices."],
+    )
+
+
 def main() -> None:
     spx = T.load_spx()
     v = T.vix_on(spx, T.load_vix())
@@ -166,8 +196,9 @@ def main() -> None:
             iv = implied_vol(v[i], spx.price[i], 0.9 * spx.price[i], name)
             c.append(100 * bs_put(spx.price[i], 0.9 * spx.price[i], t_left, iv, spx.rate[i] / 100, spx.dy[i]) / spx.price[i])
         costs[name] = (float(np.median(c)), float(np.min(c)), float(np.max(c)))
-    lines = ["# Test 5: rolling put hedge on the S&P 500, 1990-2026", "", "Rules: docstring of `tt_hedge.py`. "
+    lines = ["# Rolling put hedge on the S&P 500, 1990-2026", "",
              "Option prices are model prices (Black-Scholes on the VIX with an assumed skew), so treat the costs as indicative.", "",
+             *rules_section(), "## Results", "",
              f"Period {days[0]} .. {days[-1]}, {len(rolls)} quarterly rolls.", "",
              "Model cost of a 3-month put struck 10% below the index, % of the index, over the roll dates (median, min, max): "
              + "; ".join(f"{k} {a:.2f}% ({b:.2f}-{c:.2f})" for k, (a, b, c) in costs.items()), "",

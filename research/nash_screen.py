@@ -1,17 +1,17 @@
 """Tom Nash's quality checklist as a mechanical screen, with and without his "recession-proof" rule.
 
-Rules fixed before any results were seen (2026-09-30):
+Rules fixed before any results were seen:
 
-Universe, at each rebalance: US common stocks that pass the ground-rules liquidity test that day (as-traded
-close >= $5, 20-day average dollar volume >= $20M). Financial Services is left out of every run: Nash says not
+Universe, at each rebalance: US common stocks that pass the liquidity test that day (as-traded close
+>= $5, 20-day average dollar volume >= $20M). Financial Services is left out of every run: Nash says not
 to own leveraged businesses, and "cash > debt" means nothing for a bank (deposits are not debt).
 
-Fundamentals: FMP quarterly statements, trailing twelve months (TTM) from the latest 8 consecutive quarters.
-A quarter is usable from its filing date; where FMP's filing date is within 10 days of the period end (foreign
+Fundamentals: quarterly statements, trailing twelve months (TTM) from the latest 8 consecutive quarters.
+A quarter is usable from its filing date; where the reported filing date is within 10 days of the period end (foreign
 filers carry the period end), from 45 days after the period end. Data older than 200 days at a rebalance
 (no recent filing) makes the stock ineligible.
 
-Checklist (video 3DEAP6gBlVU):
+Checklist (from his video at youtube.com/watch?v=3DEAP6gBlVU):
   1  cash and short-term investments > total debt, leases excluded
   2  TTM revenue growth >= 10%
   3  margin >= 15%: operating margin (variant "OM") or free-cash-flow margin (variant "FCF")
@@ -28,8 +28,8 @@ margin). Weights reset each quarter:
   "blend"  50% SPY + 5% per stock (Nash's structure); unfilled slots go to SPY.
   "sleeve" 10% per stock; unfilled slots go to SPY. Shows the stock picks on their own.
 A delisted holding is sold at its last close; the cash waits for the next rebalance. Dividends are paid in cash
-(FMP adjDividend) and reinvested at the next rebalance. Costs: ground-rules slippage on every trade, 0.10%, or
-0.25% under $20 as traded. Idle cash earns nothing. Benchmark: SPY with dividends.
+(split-adjusted) and reinvested at the next rebalance. Costs: slippage on every trade, 0.10%, or 0.25% under
+$20 as traded. Idle cash earns nothing. Benchmark: SPY with dividends.
 Periods: in-sample 2016-2021, out-of-sample 2022 onward, combined 2016 onward; each from $100,000. Nothing is
 fitted, so the split only shows whether results hold in both halves.
 """

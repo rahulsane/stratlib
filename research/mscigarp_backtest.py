@@ -1,9 +1,8 @@
 """MSCI USA Quality GARP Select (iShares GARP): (1) self-managed, (2) as if the ETF had existed all along.
 
-Same questions and metrics as garp_backtest.py (the S&P 500 GARP study), with one difference in sources: MSCI
-publishes the index's official daily levels back to 2 December 2002, so the strategy's return comes from MSCI's own
-series rather than from a rebuild. The rebuild (mscigarp_index.py, "proxy" variant) is used for what only holdings
-can tell: the costs of running it yourself (turnover, slippage, idle cash, whole shares) and the taxes.
+Same questions and metrics as the S&P 500 GARP study, with one difference in sources: MSCI publishes the index's
+official daily levels back to 2 December 2002, so the strategy's return comes from MSCI's own series rather than
+from a rebuild. A rebuild of the index from company data is used for what only holdings can tell: the costs of running it yourself (turnover, slippage, idle cash, whole shares) and the taxes.
 
 Version 2, ETF: MSCI's gross total return (the fund's benchmark) less 0.20% a year, plus 0.10% slippage on the
 purchase and on the final sale. 0.20% is GARP's real all-in cost: a 0.15% fee, and its NAV trailed the index by
@@ -18,9 +17,8 @@ index (costs, idle cash, rounding) is then applied, day by day, to MSCI's offici
 
 Taxes: as in the S&P study (15% long-term and qualified dividends, 24% short-term, paid at the first review after
 April). Computed on the rebuild for both ways of owning it, so they compare like with like.
-
-Run: PYTHONPATH=src .venv/Scripts/python research/mscigarp_backtest.py
 """
+# Run: PYTHONPATH=src .venv/Scripts/python research/mscigarp_backtest.py
 
 from __future__ import annotations
 

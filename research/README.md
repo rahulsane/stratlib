@@ -23,6 +23,17 @@ entry study. Slugs should remain stable when a title changes. Updated dates
 come from the source files' modification times in UTC. Copying or restoring
 the files may change those dates; they are not experiment execution dates.
 
+Every published document states the rules and assumptions of its runs, so a
+reader who has not seen the scripts can tell what each one did: the setup,
+entry, stop, exit, sizing, universe, costs, periods and data limits, and what
+each variation's code or label means. Script-written reports open with a
+`## Rules and assumptions` section built from `report_rules.py`, which holds
+the wording several reports share (the ground rules, the table terms, the
+breakout, episodic-pivot and VCP setups, the exit codes and market filters, and
+the Traveling Trader checklist). Each script adds its own part in a
+`rules_section()` function. A follow-up study states its rules too, rather than
+pointing to the earlier report or to a script's docstring.
+
 The catalog does not automatically publish runs from the app's Backtest tab.
 That tab remains the place to execute and inspect CANSLIM backtests. Export a
 written report and add a catalog entry when a run is ready to be published.
@@ -146,6 +157,7 @@ Engine details:
 |---|---|
 | `panel.py` | Builds and caches the daily panel (`cache/panel_<date>.npz`) |
 | `engine.py` | Simulation, metrics, three-period runner, report |
+| `report_rules.py` | Shared wording for the reports' *Rules and assumptions* sections |
 | `strategies/` | One module per strategy |
 | `output/<test>/` | `report.md`, `results.json`, `trades_<period>.csv`, `ledger.json` |
 | `test_engine.py` | Engine mechanics on synthetic prices |

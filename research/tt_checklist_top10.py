@@ -1,6 +1,6 @@
-"""Variant D with a quarterly top-10 momentum selection, fixed before this run.
+"""Portfolio D with a quarterly top-10 momentum selection, fixed before this run.
 
-The ranking is the engine's existing 63-session price return, descending, with
+The ranking is the 63-session price return the other backtests rank by, descending, with
 ticker ties. Only passing, liquid stocks with known momentum are eligible. At
 each quarterly close, sell failures and names outside the top 10; retain the
 shares and initial stops of continuing names. Split available cash among the
@@ -12,9 +12,8 @@ non-interest-bearing idle cash, and price-only stock returns are unchanged.
 SPY includes dividends. Fewer than 10 passers means fewer holdings. A stop exit
 waits in cash until the next quarterly entry date. The 2022+ window has already
 been inspected in the parent study, so this extension is exploratory.
-
-Run: .venv\\Scripts\\python.exe research\\tt_checklist_top10.py
 """
+# Run: .venv\Scripts\python.exe research\tt_checklist_top10.py
 
 from __future__ import annotations
 
@@ -30,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import benchmarks
 import panel as P
+import report_rules as rr
 from engine import OUTPUT, PERIODS, PERIOD_TITLES, Rules, run_test, simulate
 from strategies.tt_checklist import Checklist
 from strategies.tt_checklist_top10 import RankedChecklist
@@ -69,6 +69,35 @@ def cells(data, period):
     c.update(worst_month=float(mr.min() * 100), worst_month_spy=float(sr.min() * 100),
              months_beat_spy=float((mr > sr).mean() * 100))
     return m, c, t
+
+
+def checklist_parts() -> list[list[str]]:
+    """The checklist, variant D and D10, for this report and the trend-filter follow-up."""
+    return [
+        rr.CHECKLIST_SOURCE,
+        rr.CHECKLIST_TRAILING,
+        rr.CHECKLIST_UNIVERSE,
+        ["Portfolio D, the starting point (the *trailing-only checklist* in the portfolio comparison): "
+         + rr.CHECKLIST_PORTFOLIO[0][len("The portfolio: "):] + " The cash on hand is split equally among that "
+         "session's buy orders, each capped at a third of equity, with at most 20 positions; when more stocks pass "
+         "than slots are free, the highest 63-session returns are bought first."],
+        ["D10: at each quarterly close, rank the passing liquid stocks by their 63-session price return, highest "
+         "first, and select the top 10. Sell holdings that failed the checklist or fell out of the top 10; keep the "
+         "rest with their shares and original stops. Split the cash on hand equally among the newly selected names, "
+         "each capped at a third of equity. A stock stopped out between rebalances leaves its cash idle until the "
+         "next one. *What changed* below gives the differences from D in detail."],
+        ["Otherwise, as in the other stock backtests here: separate runs from $100,000 for 2016–2021, 2022 on and 2016 on; "
+         "0.10% slippage a side, 0.25% under $20 as traded; no margin; idle cash earns nothing; stock returns without "
+         "dividends; SPY with dividends as the benchmark. Statements are as restated, and delisted stocks are thin "
+         "before 2021. *Limits and definitions* at the end defines the risk measures."],
+    ]
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report changes how portfolio D of the Traveling Trader checklist picks its stocks. Instead of buying "
+         "every stock that passes, it ranks the passers by momentum each quarter and holds the top 10."],
+        *checklist_parts(), rr.TERMS)
 
 
 def main():
@@ -127,8 +156,9 @@ def main():
                     j = int(np.flatnonzero(panel.symbols == trade["ticker"])[0])
                     assert j in ranked.passes[i]
 
-    lines = ["# Variant D: ranking the screen and taking the top 10", "", __doc__.strip(), "",
+    lines = ["# Portfolio D: ranking the screen and taking the top 10", "", __doc__.strip(), "",
              f"Data through {panel.dates[-1]}. Each period starts from $100,000.", "",
+             *rules_section(),
              "## What changed", "",
              "The original D offered every passer to a 20-position book, ranked new orders by 63-session return, "
              "and held existing positions until a stop or screen failure. D10 first selects the top 10 from all "
@@ -194,10 +224,10 @@ def main():
               "## Limits and definitions", "",
               "- The 2022+ label preserves the earlier report's period split. It is not fresh validation: this follow-up "
               "was proposed after seeing that period's earlier results. The ranking was fixed before this run; no alternatives were searched.",
-              "- This uses the cached trailing screen and filing-date gates, with no forward-earnings estimates. "
+              "- This uses the same trailing screen and filing-date gates as portfolio D, with no forward-earnings estimates. "
               "It does not prove every vendor fundamental is an unrevised point-in-time value. Delisted coverage is thin before 2021.",
               "- Stocks exclude dividends; SPY includes them. Slippage is 0.10% per side, or 0.25% below an as-traded $20. "
-              "Taxes and commissions are absent. Close-based ranks trade at that same close, as in the earlier engine.",
+              "Taxes and commissions are absent. Close-based ranks trade at that same close, as in the earlier checklist backtests.",
               "- A 20% stop may lose more on a gap. It stays at the original entry level for retained holdings.",
               "- Turnover is annual purchases divided by average equity. The information ratio follows the prior report's "
               "CAGR-minus-SPY divided by annualized tracking error. Underwater time is trading sessions divided by 21.",
@@ -208,9 +238,8 @@ def main():
               f"- Results are hypothetical historical simulations, consistent with the [SEC's distinction between backtested "
               f"and actual performance]({SOURCE}).", "",
               "## Files", "",
-              f"- Script: `research/tt_checklist_top10.py`; strategy: `research/strategies/tt_checklist_top10.py`.",
-              f"- Engine report, results, trade lists, equity curves, and quarterly rankings: `research/output/{NAME}/`.",
-              "- Comparison metrics and validation record: `research/output/traveling_trader/checklist_top10.json`.", ""]
+              "- The study JSON download holds the comparison metrics and the validation record.",
+              "- Each run's results, trades and equity curves are under *Compare variations*.", ""]
     report_path = OUT / "checklist_top10.md"
     report_path.write_text("\n".join(lines), encoding="utf-8")
     payload = {"rules": __doc__, "data_through": str(panel.dates[-1]), "params": PARAMS,

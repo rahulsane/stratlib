@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import earnings  # noqa: E402
 import market_filters as mf  # noqa: E402
+import report_rules as rr  # noqa: E402
 from engine import (OUTPUT, PERIOD_TITLES, PERIODS, Rules, _f, market_series, metrics, run_test,  # noqa: E402
                     simulate, spy_series)
 from lab import load_all  # noqa: E402
@@ -31,6 +32,36 @@ BASE = {**ep.DEFAULTS, "gap_pct": 20, "neglected": False, "liquidity": "prior", 
 OVERLAY = Rules(overlay_spy=True, risk_pct=1.0)
 GAPS, HOLDS = (15, 20, 25), (10, 15, 20, 30)
 SIMS, SEED = 5000, 11
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report tests whether the corrected episodic pivot's result holds up: nearby settings, the removal of "
+         "its best trades, resampling, and another way to fund the trades. The strategy under test was frozen in the "
+         "corrected report: 20% gap, market filter B, liquidity tested before the signal, exit (b), run as an SPY "
+         "overlay at 1.0% risk per trade."],
+        rr.EPISODIC_PIVOT,
+        ["The frozen version:", "",
+         "- Gap threshold 20%; the neglected condition is off.",
+         "- Market filter B: new trades only when SPY closed above its 50-day SMA on the signal day.",
+         "- " + rr.EP_PRIOR_LIQUIDITY[0],
+         "- Exit (b): keep only the initial stop and sell at the close of the 20th session after entry.",
+         "- " + rr.SPY_OVERLAY[0] + " Each trade risks 1.0% of equity."],
+        ["The checks:", "",
+         f"- Sections 1 and 2 run a grid around the frozen version: gaps of {', '.join(f'{g}%' for g in GAPS)}, time "
+         f"exits after {', '.join(str(h) for h in HOLDS)} sessions, with and without filter B. Each cell gives "
+         "expectancy ± its standard error, the number of trades, and the overlay's CAGR minus SPY's in percentage "
+         "points. A result that only works in one cell is likely luck.",
+         "- Section 3 removes the 5 and 10 best trades by R from each period's signals and reruns the period; other "
+         "signals may take their place.",
+         f"- Section 5 resamples the out-of-sample trades {SIMS:,} times with replacement. It estimates each trade's "
+         "contribution to the overlay's lead over SPY as its position size times its return minus SPY's over the "
+         "same days, less the slippage on selling and rebuying SPY, and compounds three years' worth of trades.",
+         "- Section 6 compares the trades taken at 1.0% and 1.5% risk.",
+         "- Section 7 funds trades from a cash reserve instead of selling SPY: 80% of equity in SPY, rebalanced at "
+         "each month-end close, and 20% in cash that pays for new trades (shrunk or skipped when it runs short) and "
+         "receives their proceeds."],
+        rr.GROUND_RULES, rr.TERMS)
 
 
 class Excluding:
@@ -61,7 +92,8 @@ def main() -> None:
     masks = mf.compute(panel)["masks"]
     market = market_series(panel, bench)
     shared = {}
-    lines = ["# Episodic pivot robustness (SPY overlay, 1.0% risk)", "", f"Data through {panel.dates[-1]}.", ""]
+    lines = ["# Episodic pivot robustness (SPY overlay, 1.0% risk)", "", f"Data through {panel.dates[-1]}.", "",
+             *rules_section()]
 
     def factory(inner, code):
         return lambda: mf.Filtered(inner, masks[code], code, shared)
@@ -75,7 +107,7 @@ def main() -> None:
     # Base (reproduces ep_fixed_b_overlay_1.0).
     base_inner = ep.EpisodicPivot(dates)
     base = run_test(panel, "ep_fixed_b_overlay_1.0", factory(base_inner, "B"), BASE, bench, rules=OVERLAY,
-                    description="Episodic pivot, 20% gap, SPY above its 50-day SMA, corrected liquidity; exit (b) "
+                    description="Episodic pivot, 20% gap, SPY above its 50-day SMA, liquidity tested before the signal day; exit (b) "
                                 "initial stop, time exit after 20 sessions; SPY overlay, 1.0% risk.")["results"]
     base_strategy = factory(base_inner, "B")()
     base_strategy.setup(panel, BASE)
@@ -90,9 +122,9 @@ def main() -> None:
                 params = {**BASE, "gap_pct": gap, "exit": {"kind": "time", "days": hold}, "market_filter": code}
                 name = f"ep_grid_gap{gap}_hold{hold}_{'spyfilter' if code == 'B' else 'nofilter'}"
                 summary = run_test(panel, name, factory(inner, code), params, bench, rules=OVERLAY,
-                                   description=f"Episodic pivot neighbor grid: gap {gap}%, time exit after {hold} "
+                                   description=f"Episodic pivot, nearby-settings grid: gap {gap}%, time exit after {hold} "
                                                f"sessions, {'SPY above its 50-day SMA' if code == 'B' else 'no market filter'}; "
-                                               "corrected liquidity; SPY overlay, 1.0% risk.")
+                                               "liquidity tested before the signal day; SPY overlay, 1.0% risk.")
                 grid[(gap, hold, code)] = {}
                 for p in (*TWO, "combined"):
                     rs = np.array([float(r["r"]) for r in csv.DictReader(open(OUTPUT / name / f"trades_{p}.csv", encoding="utf-8"))])
@@ -102,7 +134,7 @@ def main() -> None:
                 print(f"{name}: done")
     same = all(abs(grid[(20, 20, "B")][p]["cagr"] - base[p]["cagr"]) < 1e-9 for p in TWO)
     lines += ["## 1. Were the gap threshold and the filter chosen on 2016-2021 only?", "",
-              f"(Grid base cell reproduces the frozen strategy exactly: {same}.)", "",
+              f"(The grid's base cell {'reproduces' if same else 'does not reproduce'} the frozen strategy exactly.)", "",
               "In-sample expectancy with a 20-session hold, from the grid below:", "",
               "| Gap | With SPY filter | Without |", "|---|---|---|"]
     for gap in GAPS:
@@ -227,7 +259,9 @@ def main() -> None:
                 "20% cash reserve, reserve earns nothing": "ep_fixed_b_reserve20_1.0",
                 "20% cash reserve, reserve earns T-bills": "ep_fixed_b_reserve20_1.0_tbill"}[label]
         reserve[label] = run_test(panel, name, factory(base_inner, "B"), BASE, bench, rules=rules,
-                                  description=f"Episodic pivot (corrected, 20-session exit), 1.0% risk, overlay funded by: {label}.")["results"]
+                                  description=("Episodic pivot, 20% gap, SPY above its 50-day SMA, liquidity tested before the "
+                                               "signal day; exit (b) initial stop, time exit after 20 sessions; SPY "
+                                               f"overlay at 1.0% risk; funding: {label}."))["results"]
     lines += ["## 7. Funding from a 20% cash reserve instead of selling SPY", "",
               "Reserve mode: 80% of equity in SPY, rebalanced at each month-end close; new trades are paid for from the "
               "cash reserve only (shrunk or skipped if it runs short) and their proceeds return to it.", "",

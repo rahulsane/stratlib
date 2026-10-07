@@ -1,10 +1,10 @@
 """Rule study for the Nash screen: does each candidate rule predict returns across the whole universe?
 
-Pre-registered 2026-09-30, before any of these statistics were computed.
+Fixed before any of these statistics were computed.
 
-Universe at each rebalance (first session of each calendar quarter): stocks that pass the ground-rules
-liquidity test that day, outside Financial Services, with 8 consecutive quarters of statements in one
-currency available before the day (filing date; period end + 45 days where FMP's filing date is the
+Universe at each rebalance (first session of each calendar quarter): stocks that pass the liquidity test
+that day ($5 as-traded close, $20M of 20-day average dollar volume), outside Financial Services, with 8 consecutive quarters of statements in one
+currency available before the day (filing date; period end + 45 days where the reported filing date is the
 period end) and no older than 200 days.
 
 Forward return: rebalance close to the next rebalance close, split-adjusted price only; a stock whose prices
@@ -15,8 +15,8 @@ Tests (statistic per quarter, in percentage points; positive = the rule helps):
   MOM    12-month return skipping the last month (sessions t-252..t-21); top fifth minus universe
   FCFY   TTM free cash flow / market cap; universe minus the lowest-yield fifth
   EVS    enterprise value / TTM revenue; universe minus the highest fifth
-         (market cap and EV from FMP key-metrics at the quarter end, moved to the rebalance day with the
-         price change; skipped where key-metrics and the statements use different currencies)
+         (market cap and EV from the data provider's key metrics at the quarter end, moved to the rebalance day with the
+         price change; skipped where the key metrics and the statements use different currencies)
   ROIC3  ROIC >= 15% at the latest quarter and 4 and 8 quarters earlier; passers minus universe.
          ROIC = TTM operating income x (1 - tax rate) / (equity + total debt - cash and short-term
          investments). Tax rate = TTM tax / TTM pre-tax income, clipped to 0-35%, 21% if pre-tax <= 0.
@@ -35,7 +35,7 @@ A rule survives only if, in the broad universe:
 Secondary (reported, not used for selection): the same statistics inside the base Nash set below, with
 halves instead of fifths.
 
-Final portfolio, run once after this study (nash_final.py):
+Final portfolio, run once after this study:
   Base filter: Nash rules 1-4 with FCF margin >= 15%, one currency, FCF margin within +-100%, prior-year
   revenue >= $1B, financials excluded, no rule 7.
   Surviving binary rules become extra filters; surviving continuous rules join a composite rank (mean

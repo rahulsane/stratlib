@@ -20,6 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
+import report_rules as rr
 import run_turtle as rt
 import turtle_data as td
 import turtle_sim as ts
@@ -145,11 +146,49 @@ def detail(res: dict, cols: list[tuple[str, str]], period: str) -> str:
     return rt.table(hdr, rows)
 
 
+def rules_section() -> list[str]:
+    return rr.section(
+        ["The Original Turtle Trading Rules (the 2003 PDF), as in the first report, traded on ETFs instead of "
+         "futures:", "",
+         "- N is the 20-day average true range, smoothed Wilder-style. A unit is 1% of the notional account divided "
+         "by N, so a move of 1N in one unit is 1% of the account.",
+         "- System 1 buys one tick above the 20-day high, or sells short one tick below the 20-day low, but skips the "
+         "signal when the previous 20-day breakout would have won; a skipped signal leaves the 55-day breakout as a "
+         "failsafe entry. System 2 takes every 55-day breakout. *S1+S2* runs the two systems in separate accounts "
+         "with half the money each.",
+         "- One unit is added every ½N beyond the previous fill, up to 4 units per market. GLD and SLV, closely "
+         "correlated, share a limit of 6 units in one direction (SPY and QQQ did too in the six-ETF version), and "
+         "no more than 12 units point one way overall.",
+         "- Each unit's stop is 2N from its fill, and earlier stops move up ½N with each add. Positions exit at the "
+         "opposite 10-day (System 1) or 20-day (System 2) breakout.",
+         "- The notional account resets to equity each January and is cut 20% for each 10% lost, restored when "
+         "equity regains the year's start."],
+        ["The variations, with the first report's six-ETF long and short runs alongside for reference:", "",
+         "- Variation 1: QQQ, GLD, SLV and USO, long and short, all three systems. SPY and TLT are dropped.",
+         "- Variation 2: all six ETFs (SPY, QQQ, GLD, SLV, USO, TLT), System 2, long only. Short breakouts are "
+         "ignored.",
+         "", "Each runs at three leverage settings:", "",
+         "- As written: units as the rules size them, borrowing whatever that takes.",
+         "- Capped at 2x and at 1x: long plus short value at most 2 or 1 times equity at the previous close. A unit "
+         "that does not fit shrinks to the room left and is skipped below a tenth of a unit.",
+         "- Smaller units, for comparison: 0.5% or 0.25% of equity per N instead of 1%, with no cap."],
+        ["Fills, money and periods:", "",
+         "- Orders fill at their trigger, or at the open when the price gaps beyond it. Within a day the price is "
+         "assumed to go open, low, high, close on an up day and open, high, low, close on a down day.",
+         "- Slippage is 0.10% a side, 0.25% when the as-traded price is under $20. Prices are dividend-adjusted, so "
+         "longs earn the distributions and shorts pay them.",
+         "- Idle cash and short proceeds earn the 3-month T-bill yield; borrowed cash pays the yield plus 0.5%; shorts "
+         "pay 0.5% a year to borrow.",
+         "- Each period is a separate run from $100,000 that closes its positions at the end: the full period from "
+         "August 2006, 2006–2015, in-sample 2016–2021, out-of-sample 2022 on, and combined 2016 on.",
+         "- Benchmarks: SPY and QQQ bought at the first close and held, with dividends."])
+
+
 def report(res: dict) -> str:
     R = res["runs"]
     L = ["# Turtle variations: without SPY and TLT, and System 2 long only", ""]
-    L.append(f"Data through {res['data_through']}. Same rules, costs, money and periods as the first report "
-             "(`output/turtle/report.md`, method section). Variation 1 trades QQQ, GLD, SLV and USO, long and short; "
+    L.append(f"Data through {res['data_through']}. Same rules, costs, money and periods as the first report, "
+             "[*The Turtle Trading rules on six ETFs*](/reports?report=turtle-trading-etfs) (its Method section). Variation 1 trades QQQ, GLD, SLV and USO, long and short; "
              "SPY and QQQ were a closely correlated pair, so QQQ now stands alone, and GLD and SLV keep their "
              "6-unit pair limit. Variation 2 trades all six ETFs, System 2, long only: short breakouts are ignored. "
              "Benchmarks: SPY and QQQ with dividends.")
@@ -158,6 +197,7 @@ def report(res: dict) -> str:
              "chosen with hindsight and their full-period numbers are flattered.** The section *Would 2006–2015 have "
              "suggested these changes?* checks the choice against the first half alone.")
     L.append("")
+    L += rules_section()
     L.append(findings(res))
     L.append("")
     L.append("![Growth of $100,000 by leverage setting](growth_by_leverage.png)")
@@ -257,8 +297,7 @@ def report(res: dict) -> str:
     L.append("## Files")
     L.append("")
     L.append("Trade lists: `trades/<period>_<variation>_<system>_<leverage>.csv` (v1 = without SPY and TLT, v2 = long "
-             "only). Daily values for every full-period run: `curves_full.csv`. Chart: `turtle_variations_chart.py`. "
-             "Code: `run_turtle_variations.py`, on the simulator of the first report (`turtle_sim.py`).")
+             "only). Daily values for every full-period run: `curves_full.csv`.")
     return "\n".join(L)
 
 

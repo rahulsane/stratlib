@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES  # noqa: E402
 import tt_data as T  # noqa: E402
 
@@ -138,12 +139,55 @@ ROWS = [
 ]
 
 
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report puts the four checklist portfolios side by side, with risk and concentration "
+         "measures the individual reports leave out. All four trade on the same quarterly dates with the same 20% stop and "
+         "the same sell-on-failure exit; they differ in the checklist and the sizing."],
+        rr.CHECKLIST_SOURCE,
+        ["The two checklists:", "",
+         "- The forward-proxy checklist (QUALF) adds his forward tests: forward EPS above trailing EPS, and a forward "
+         "PEG of 1 or less. The data has no point-in-time estimates, so forward EPS is built from the consensus each "
+         "of the next four reports had just before it came out. That uses up to 12 months of hindsight, so A, B and C "
+         "are an upper bound.",
+         "- The hindsight-free checklist (QUAL) drops the forward tests and uses a trailing PEG. It uses only data "
+         "public at the rebalance.",
+         "", "Both also require a PE below the stock's own history, ROIC of at least 15%, debt below equity and "
+         "rising free cash flow. The checklist reports define each test."],
+        [rr.CHECKLIST_PORTFOLIO[0], "",
+         "- A: QUALF, 5% positions. Each trade risks 1% of equity, a 5% position at the 20% stop, with at most 20 "
+         "positions. Idle cash earns nothing.",
+         "- B: A with all capital not in trades held in SPY.",
+         "- C: QUALF, equal weight. At each rebalance the cash on hand is split equally among that session's buy "
+         "orders, each capped at a third of equity, at most 20 positions. The split counts orders later turned away "
+         "for lack of a slot, so some cash can stay idle.",
+         "- D: C's sizing with the hindsight-free checklist."],
+        ["Measures, from each run's daily equity and trades:", "",
+         "- Volatility, beta and correlation use daily returns against SPY with dividends. Tracking error is the "
+         "annualized volatility of the daily difference from SPY; the information ratio is CAGR minus SPY's CAGR, "
+         "divided by tracking error. Calmar is CAGR divided by the max drawdown.",
+         "- *Longest time under a previous high* counts sessions below the last peak, divided by 21. *Worst rolling 12 "
+         "months* and *Rolling 12-month windows beating SPY* use every 252-session window.",
+         "- *Positions held* counts every position open on a day, including the day it was sold. On a rebalance day "
+         "that counts both the stocks sold and those bought, so the maximum overstates what was held after the close: "
+         "a later check found D never held more than 20.",
+         "- *Initial position weight* is the position's value over equity at entry. *Turnover* is the value bought per "
+         "year over average equity.",
+         "- *Expectancy without the top 5* drops the five best trades by R. *Best single trade* is its share of total "
+         "profit."],
+        ["Otherwise, as in the other stock backtests here: separate runs from $100,000 for 2016–2021, 2022 on and 2016 on; "
+         "0.10% slippage a side, 0.25% under $20 as traded; no margin; stock returns without dividends; SPY with "
+         "dividends as the benchmark. Statements are as restated, and delisted stocks are thin before 2021."],
+        rr.TERMS,
+    )
+
+
 def main() -> None:
     data = {test: load(test) for test, _ in TESTS}
     lines = ["# Checklist portfolio constructions compared", "",
              "Same screen dates, same 20% stop and sell-on-failure exit. A, B and C use the forward-proxy checklist "
-             "(hindsight in the earnings estimates); D uses the hindsight-free checklist with C's sizing. "
-             "Definitions: docstring of `tt_checklist_compare.py`.", ""]
+             "(hindsight in the earnings estimates); D uses the hindsight-free checklist with C's sizing.", "",
+             *rules_section()]
     out = {}
     for period in PERIODS:
         lines += [f"## {PERIOD_TITLES[period]}", "", "| | " + " | ".join(label for _, label in TESTS) + " |",

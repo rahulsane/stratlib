@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import report_rules as rr
 from ma_pullback_report import RULE_HEAD, head, pm, rng, rule_cells
 from run_ma_pullback_etf import HORIZONS, PERIOD_TITLES, TOUCHES, VARIANTS
 from run_wtt import f, table
@@ -97,15 +98,37 @@ def findings(res: dict) -> str:
     return "\n".join(f"{i}. {x}" for i, x in enumerate(items, 1))
 
 
+def rules_section() -> list[str]:
+    return rr.section(
+        ["Rayner Teo's moving-average pullback, as fixed for the stock study, on daily bars, long only:", "",
+         "1. Area of value: the 50-day EMA, plus or minus half a 20-day ATR.",
+         "2. Touches: a pullback into the area is a completed test when the price then makes a new high above the swing "
+         "high before it; a close below the area resets the count. As specified, only the third pullback after two "
+         "completed tests is traded (*Third only*). *The touch rules* below adds two looser counts.",
+         "3. Trigger: a hammer (close in the top quarter of the day's range, lower shadow at least twice the body) or a "
+         "bullish engulfing candle (a down candle, then an up candle whose body covers it), on a session that reaches "
+         "the area or the one after. Buy at the next open; one entry per pullback.",
+         "4. Size: 1% of the account at risk per trade, no margin."],
+        ["His articles disagree on three rules, so all eight combinations run. The tables name them:", "",
+         "- Trend filter. *Above 200*: the close is above the 200-day EMA. *Rising 200*: also, the 200-day EMA is above "
+         "its level 20 sessions earlier.",
+         "- Stop. *Swing-low stop*: 1 ATR below the pullback's lowest low. *Entry stop*: 2 ATR below the entry price.",
+         "- Exit. *Target*: a limit 0.25 ATR below the swing high before the pullback, with the stop left in place; a "
+         "trade whose entry is already at or above it is skipped. *EMA exit*: sell at the next open after a close "
+         "below the 50-day EMA, with the stop kept as a hard stop."],
+        ["A stop fills at the stop price, or at the open on a gap through it, and comes before a target on the same "
+         "day. The EMAs are of the split-adjusted close; the ATR uses Wilder's smoothing. *Method and assumptions* at "
+         "the end covers data, sizing, costs and taxes; the stock study lists the judgement calls behind the rules and "
+         "moves each one notch in its robustness checks."])
+
+
 def report(res: dict) -> str:
     cf, b, ev, sb = res["configs"], res["bench"], res["events"], res["spy_block"]
     sp, sa = b["SPY/long/pre"], b["SPY/long/after"]
     ks = keys()
     out = ["# Rayner Teo's moving-average pullback on SPY and QQQ", "",
-           f"Data through {res['data_through']}. Runner: `research/run_ma_pullback_etf.py`; data: "
-           "`research/ma_pullback_etf_data.py`; rules: `src/stratlib/sim/strategies/ma_pullback.py` (the same rules and "
-           "eight variants as the stock study, `output/ma_pullback/report.md`). Two index ETFs instead of stocks, an "
-           "exception to the standard's stocks-only rule. Method at the end.", "", "## Findings", "",
+           f"Data through {res['data_through']}. The same rules and eight variants as the stock study, "
+           "[*Rayner Teo's moving-average pullback, before and after tax*](/reports?report=ma-pullback-rayner-teo), applied to SPY and QQQ. Method at the end.", "", *rules_section(), "## Findings", "",
            findings(res), "", "![After-tax growth and drawdowns](equity_drawdown.png)", ""]
 
     # ------------------------------------------------------------------ touch rules
@@ -139,7 +162,7 @@ def report(res: dict) -> str:
             "1994 to the last close, from $100,000. QQQ trades from 2000, once its averages have formed. *Time in "
             "market*: sessions with a position; *invested*: the average share of the account in the ETFs. *Held*: "
             "taxes paid on everything realized; *sold*: everything sold at the end and taxed. Volatility and drawdown "
-            "before tax. The last column is the standard's window (a separate run from 2016).", "",
+            "before tax. The last column is a separate run from 2016, the window the stock study uses.", "",
             table(HEAD + ["Trades", "Time in market / invested", "Before tax", "After tax, held", "After tax, sold",
                           "Volatility", "Max drawdown", "2016 on, before tax"], rows), ""]
 
@@ -287,8 +310,8 @@ def report(res: dict) -> str:
 
     # ------------------------------------------------------------------ method
     out += ["## Method and assumptions", "",
-            "- Rules, variants, trigger, stops, exits and judgement calls: as in the stock study "
-            "(`output/ma_pullback/report.md`, *The rules tested* and *Method*), applied to SPY and QQQ.",
+            "- Rules, variants, trigger, stops and exits: as in the stock study (its *The rules tested* and *Method and "
+            "assumptions*), applied to SPY and QQQ, and summarized in *Rules and assumptions* above.",
             "- Data: split-adjusted daily bars from each ETF's first trading day (SPY 29 January 1993, QQQ 10 March "
             "1999), dividends by ex-date, 3-month T-bill yields from 1990. The averages need about a year of bars, so "
             "the test starts in January 1994 and QQQ can first signal in early 2000.",
@@ -296,7 +319,7 @@ def report(res: dict) -> str:
             "available (two broad index ETFs, at most two positions), and no margin. With stops one or two percent "
             "below the entry, a trade usually takes a third to two thirds of the account.",
             "- Costs: slippage 0.10% a side (both ETFs always traded above $20). No commissions.",
-            "- Taxes and benchmarks: the reporting standard (top federal rates, taxes paid from the account at the start "
+            "- Taxes and benchmarks: as in the stock study (top federal rates, taxes paid from the account at the start "
             "of the next year, wash sales, carryforwards, SPY taxed the same way, SPY at the same volatility). QQQ "
             "buy-and-hold is shown from 2000 for context.",
             "- Random selection, the stock study's baseline for its ranking, does not apply: two ETFs rarely signal "
