@@ -558,5 +558,23 @@
    "ma_pullback_etf/curves_long.csv"
   ],
   "note": "The looser touch rules were added after seeing the signal count."
+ },
+ {
+  "slug": "leveraged-sp500-trend",
+  "title": "Leveraged S&P 500 with a 200-day trend filter",
+  "strategy": "Leveraged S&P 500",
+  "summary": "A 2x leveraged S&P 500 ETF held while the index is above its 200-day moving average, T-bills otherwise, backtested from 1950 against SPY: CAGR and drawdowns, rolling 30-year windows, 3x and a 2x/3x blend, after-tax results, a margin-financed version, a vol-matched benchmark, and the Nasdaq-100.",
+  "documents": [
+   {
+    "path": "levtrend/report.md",
+    "title": "Findings, results and method"
+   }
+  ],
+  "files": [
+   "levtrend/results.json",
+   "levtrend/curves_full.csv",
+   "levtrend/rolling_30y.csv",
+   "levtrend/switches.csv"
+  ]
  }
 ]
