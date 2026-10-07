@@ -16,6 +16,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import earnings  # noqa: E402
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, Rules, _f, run_test  # noqa: E402
 from lab import load_all  # noqa: E402
 from strategies.episodic_pivot import C10, DEFAULTS, EpisodicPivot  # noqa: E402
@@ -23,6 +24,28 @@ from strategies.episodic_pivot import C10, DEFAULTS, EpisodicPivot  # noqa: E402
 RISKS = (0.5, 1.0, 2.0, 3.0, 5.0)
 CAPS = {"cap20": 20.0, "nocap": 100.0}
 PARAMS = {**DEFAULTS, "gap_pct": 20, "neglected": False, "exit": C10}
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report keeps one version of the episodic pivot fixed (20% gap, no neglected condition, no market "
+         "filter, C10 exit) and changes only the position size. The signals are the same in every run; bigger "
+         "positions run out of cash sooner, so some runs take fewer of them."],
+        rr.EPISODIC_PIVOT,
+        rr.EP_SIGNAL_DAY_LIQUIDITY,
+        ["Exit:", "", *rr.exits("C10")],
+        ["Sizing, the only thing that changes:", "",
+         "- Risk per trade of 0.5% (the usual setting), 1%, 2%, 3% or 5% of equity: shares = risk × equity / (entry "
+         "price − initial stop).",
+         "- With the usual 20% position cap, or without it. Without the cap a position is limited only "
+         "by the cash on hand; there is still no margin.",
+         "", "Columns:", "",
+         "- *Worst year* is the run's weakest calendar year.",
+         "- *Avg position* is the average position's value as a share of equity just before it was bought. *Avg "
+         "invested* is the average share of equity in trades over all sessions.",
+         "- *Worst trade (% of equity)* is the largest loss on one trade as a share of equity before it.",
+         "- *Cash-limited entries* counts trades bought smaller than their risk size because cash ran short."],
+        rr.GROUND_RULES, rr.TERMS)
 
 
 def trade_risk_stats(folder: Path, period: str, summary: dict) -> dict:
@@ -55,7 +78,7 @@ def main() -> None:
                                              **trade_risk_stats(OUTPUT / name, p, summary)} for p in PERIODS}
             print(f"{name}: done")
     lines = ["# Episodic pivot at higher risk per trade", "",
-             "20% gap, C10 exit, no market filter. Same signals; only the sizing changes.", ""]
+             "20% gap, C10 exit, no market filter. Same signals; only the sizing changes.", "", *rules_section()]
     for period in ("out_of_sample", "combined", "in_sample"):
         lines += [f"## {PERIOD_TITLES[period]}", "",
                   "| Position cap | Risk per trade | Trades | Expectancy | CAGR | Max drawdown | Sharpe | Worst year | "

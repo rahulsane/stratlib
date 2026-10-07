@@ -86,9 +86,8 @@ def report(res: dict) -> str:
     title = {p: PERIOD_TITLES[p] for p in ("combined", "in_sample", "out_of_sample")}
     heads = [SHORT[c] for c in CONFIG_ORDER]
     sp, sa = spy["combined/pre"], spy["combined/after"]
-    out = ["# WTT and the QuantifiedStrategies-style version under the reporting standard", "",
-           f"Data through {res['data_through']}. Runner: `research/run_wtt_standard.py`; tax accounting: "
-           "`research/tax_accounting.py`. Method and assumptions at the end.", "",
+    out = ["# WTT and the QuantifiedStrategies-style version before and after tax", "",
+           f"Data through {res['data_through']}. Method and assumptions at the end.", "",
            "## Findings", "", findings(res), "", "![After-tax growth and drawdowns](equity_drawdown.png)", ""]
 
     rows = []
@@ -246,7 +245,7 @@ def method(res: dict) -> str:
         "weekly close that tightens to 10% after any week with SPY below its average and never moves down; 20 "
         "positions of 5%.",
         "- *QS-style*: the same entries; a 40% trailing stop that never tightens; 10 positions of 10%. A "
-        "reconstruction of QuantifiedStrategies' members-only rules (see `output/wttqs/report.md`).",
+        "reconstruction of QuantifiedStrategies' members-only rules (see [*A QuantifiedStrategies-style Weekend Trend Trader on the Russell 3000 and S&P 900*](/reports?report=weekend-trend-trader-qs)).",
         "- Universe: Russell 3000 or S&P 500 + MidCap 400 members at the signal week (point in time: archived "
         "iShares holdings, the S&P 500 change log, Wikipedia's S&P 400 list checked against IJH), as-traded close "
         "of $1 or more.",
@@ -256,7 +255,7 @@ def method(res: dict) -> str:
         "alternative.",
         "- Costs: slippage 0.10% a side, 0.25% when the as-traded price is under $20.",
         "",
-        "The reporting standard:",
+        "Dividends, taxes and benchmarks:",
         "- Dividends: included, credited at the ex-date to shares held at the previous close (split-adjusted).",
         f"- Taxes: {f(r['short_term'])}% on short-term gains and ordinary dividends, {f(r['long_term'])}% on long-term "
         "gains and qualified dividends (top federal rates with the 3.8% net investment income tax); no state tax. "

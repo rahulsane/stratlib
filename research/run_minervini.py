@@ -15,6 +15,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, _f, run_test, simulate, top_share  # noqa: E402
 from lab import load_all  # noqa: E402
 from strategies.minervini import C10, DEFAULTS, Minervini, new_setups, trend_template, vcp_scan  # noqa: E402
@@ -43,6 +44,25 @@ ROWS = [
 ]
 
 
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report tests Minervini's trend template and VCP with two exits. The setup and entry are the same in "
+         "both tests."],
+        rr.MINERVINI,
+        ["Exits:", "", "- " + rr.MINERVINI_EXIT_A[0],
+         "- Exit (b): the best exit of the breakout study, C10. Sell a third at the close of the 3rd session after "
+         "entry and move the stop on the rest up to the entry price; from the next session, sell the rest at the "
+         "first close below the 10-day SMA."],
+        ["The signals table counts, for each year, the stock-days that passed the trend template, the stock-days "
+         "with a VCP setup, and the new setups (a stock's first setup day, or a new pivot). *Trades kept / sold on low "
+         "volume* splits the combined run's trades by the breakout-volume test. The last two rows count new setups "
+         "with a 5% or 8% zigzag reversal instead of 3%; those were not traded.",
+         "",
+         "The VCP funnel narrows the trend-template stock-days step by step: at least two contracting pullbacks, "
+         "then also a final pullback of 10% or less, then also drying volume."],
+        rr.GROUND_RULES, rr.TERMS)
+
+
 def main() -> None:
     panel, bench = load_all()
     template, _ = trend_template(panel, DEFAULTS)
@@ -63,7 +83,7 @@ def main() -> None:
     for code, (label, rule) in EXITS.items():
         name = f"minervini_vcp_exit_{code}"
         summary = run_test(panel, name, lambda: Minervini(scan), {**DEFAULTS, "exit": rule}, bench,
-                           description=f"Minervini trend template and VCP, exit {label}. See strategies/minervini.py.")
+                           description=f"Minervini trend template and VCP, exit {label}.")
         results[code] = summary["results"]
         s = Minervini(scan)
         s.setup(panel, {**DEFAULTS, "exit": rule})
@@ -73,7 +93,7 @@ def main() -> None:
         trades_by_year[code] = {y: (kept.get(y, 0), failed.get(y, 0)) for y in year_list}
         print(f"exit {code}: done")
 
-    lines = ["# Minervini trend template + VCP", "", f"Data through {panel.dates[-1]}.", "",
+    lines = ["# Minervini trend template + VCP", "", f"Data through {panel.dates[-1]}.", "", *rules_section(),
              "## Signals per year", "",
              "| | " + " | ".join(year_list) + " |", "|---|" + "---|" * len(year_list)]
     for label, row in per_year.items():
@@ -84,7 +104,10 @@ def main() -> None:
     for swing, row in counts_by_swing.items():
         lines.append(f"| New setups with a {swing:g}% swing threshold (count only) | "
                      + " | ".join(f"{row[y]:,}" for y in year_list) + " |")
-    lines += ["", f"VCP funnel, template stock-days (all years): {scan['funnel']}.", ""]
+    fn = scan["funnel"]
+    lines += ["", f"VCP funnel, all years: {fn['template_days']:,} trend-template stock-days; "
+              f"{fn['two_or_more_contracting']:,} with at least two contracting pullbacks; {fn['final_within_limit']:,} "
+              f"with the final pullback within 10%; {fn['volume_dry']:,} with drying volume as well.", ""]
     for period in PERIODS:
         lines += [f"## {PERIOD_TITLES[period]}", "", "| | " + " | ".join(EXITS[c][0] for c in EXITS) + " |",
                   "|---|" + "---|" * len(EXITS)]

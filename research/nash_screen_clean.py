@@ -1,9 +1,9 @@
-"""Post-hoc cleanup of the Nash screen (chosen AFTER seeing nash_screen.py's results; label it that way).
+"""Post-hoc cleanup of the Nash screen, chosen after seeing the first screen's results.
 
-The pre-registered Rule-of-40 ranking was dominated by FMP data errors (JOYY revenue about a tenth of the
+The Rule-of-40 ranking fixed in advance was dominated by data errors (JOYY revenue about a tenth of the
 real figure, TAL free cash flow about 245x revenue, 34 histories that switch reporting currency) and by
 biotechs whose "growth" is a one-off milestone payment on a near-zero base (CRSP, BEAM: Rule of 40 above
-100,000%). Three guards, everything else as in nash_screen.py:
+100,000%). Three guards, everything else as in the first screen:
   - all 8 quarters in the TTM windows reported in the same currency;
   - TTM free-cash-flow margin between -100% and +100%;
   - prior-year TTM revenue of at least $250M (and a $1B check), converted at rough fixed exchange rates.

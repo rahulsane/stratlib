@@ -19,6 +19,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import earnings  # noqa: E402
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, _f, run_test  # noqa: E402
 from lab import load_all  # noqa: E402
 from strategies.episodic_pivot import DEFAULTS, EpisodicPivot, earnings_mask, signal_mask, strong_close  # noqa: E402
@@ -31,6 +32,30 @@ EXITS = {
 }
 HORIZON = 60
 SHOW_DAYS = (1, 2, 3, 5, 10, 20, 30, 40, 50, 60)
+
+
+def variant_label(name: str) -> str:
+    """ep_gap20_neglected_A5 -> "20% gap, neglected stocks only, A5 exit"."""
+    _, gap, group, code = name.split("_")
+    return f"{gap[3:]}% gap, {'neglected stocks only' if group == 'neglected' else 'all signals'}, {code} exit"
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report tests the episodic pivot over a grid of 18 versions: three gap thresholds (5%, 10%, 20%), with "
+         "and without the neglected condition, and three exits. The earnings condition is always on. It was the first "
+         "episodic-pivot study; later reports change the liquidity test and the exit."],
+        rr.EPISODIC_PIVOT,
+        rr.EP_SIGNAL_DAY_LIQUIDITY,
+        ["Exits, the three best of the breakout exit study:", "", *rr.exits(*EXITS)],
+        ["The *Earnings dates* table counts, for each gap size, the gap-and-volume days on liquid stocks from 2016 "
+         "(conditions 1 and 2) and the share of them that fell on the first session after an earnings release.", "",
+         "*Returns after every signal* follows each signal (conditions 1 to 3, plus 4 where marked, on a liquid stock) "
+         f"whether or not the portfolio traded it, for {HORIZON} sessions from the signal day's close. A delisted "
+         "stock is held at its last close. *vs SPY* subtracts SPY's return over the same sessions; each cell is mean / "
+         "median. *Entry condition met* keeps the signals whose close also passed the entry test; *not met* keeps the "
+         "others. Signals without 60 later sessions are left out."],
+        rr.GROUND_RULES, rr.TERMS)
 
 
 def variant_name(gap, neglected, code):
@@ -70,7 +95,7 @@ def main() -> None:
     dates = earnings.load(panel)
     emask = earnings_mask(panel, dates)
     spy_j = panel.index["SPY"]
-    lines = ["# Episodic pivot", "", f"Data through {panel.dates[-1]}.", ""]
+    lines = ["# Episodic pivot", "", f"Data through {panel.dates[-1]}.", "", *rules_section()]
 
     # Earnings coverage: how many gap-and-volume days on liquid stocks match a release date.
     study = panel.dates >= "2016-01-01"
@@ -122,7 +147,7 @@ def main() -> None:
         f"{PERIOD_TITLES[p]} CAGR {spy[p]['spy']['cagr']:+.1f}%, max drawdown {spy[p]['spy']['max_drawdown']:.1f}%"
         for p in PERIODS) + ".", ""]
     best = max(results, key=lambda n: results[n]["in_sample"]["expectancy_r"])
-    lines += [f"Best in-sample expectancy: `{best}` ({results[best]['in_sample']['expectancy_r']:+.3f}R in-sample, "
+    lines += [f"Best in-sample expectancy: {variant_label(best)} ({results[best]['in_sample']['expectancy_r']:+.3f}R in-sample, "
               f"{results[best]['out_of_sample']['expectancy_r']:+.3f}R out-of-sample).", ""]
 
     # Drift after every signal.

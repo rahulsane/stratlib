@@ -23,6 +23,7 @@ import numpy as np
 
 import benchmarks
 import panel as P
+import report_rules as rr
 import run_wtt as W
 from engine import OUTPUT, PERIODS, PERIOD_TITLES, metrics, run_test, simulate, spy_series, yearly
 from strategies.weekend_trend import WeekendTrend, week_ends
@@ -164,7 +165,7 @@ def main() -> None:
         params = W.params_for(rule, u, rank, seed)
         desc = (f"Weekend Trend Trader on {UNIVERSES[u]} members (point in time). {W.RULE_NAMES[rule]}. Ranking: "
                 + (f"random, seed {seed} (the median of {SEEDS} random runs on the combined period)" if rank == "random"
-                   else W.RANK_NAMES[rank]) + ". 5% of equity per position, at most 20. See output/wtt900/report.md.")
+                   else W.RANK_NAMES[rank]) + ". 5% of equity per position, at most 20.")
         summary = run_test(p, name, WeekendTrend, params, b, rules=W.RULES, description=desc)
         fixed[name] = {"universe": u, "rule": rule, "rank": rank, "seed": seed,
                        "periods": {k: {m: float(v[m]) for m in W.MC_KEYS} for k, v in summary["results"].items()},
@@ -285,15 +286,47 @@ def findings(res: dict) -> str:
     return "\n".join(f"{i}. {text}" for i, text in enumerate(items, 1))
 
 
+def rules_section(seeds: int) -> list[str]:
+    return rr.section(
+        ["Nick Radge's Weekend Trend Trader (*Weekend Trend Trader*, 2012), as in the all-stocks study, checked on "
+         "weekly closes. A week's close is the close of its last session; orders go in at the next session's open.", "",
+         "- Index filter: SPY's weekly close above the mean of its last 10 weekly closes. SPY stands in for both "
+         "indexes.",
+         "- Entry: the stock's weekly close is at least the highest of its previous 20 weekly closes, and its 20-week "
+         "rate of change is at least 30%. No new entries while the index filter is down.",
+         "- Stop: 40% below the highest weekly close since the signal week while the index filter is up, 10% below "
+         "once it is down. A weekly close under the stop sells at the next open; there are no intraday stops.",
+         "  - *Stop as described* (the book): the stop never moves down. After a down week it stays at the 10% level "
+         "until 40% below a new high passes it.",
+         "  - *Recomputed stop*: recomputed each week from the highest close with that week's percentage, so it "
+         "loosens back to 40% when the index recovers.",
+         "- Size: 5% of equity at the previous close per position, at most 20 positions, no margin. An entry that "
+         "needs more than the cash left is shrunk to it; with no cash left the signal is skipped."],
+        ["Choices where the book is silent:", "",
+         f"- Selection: the book gives no rule for more signals than free slots. Random order is the headline, run "
+         f"{seeds} times per universe, stop rule and period; the 63-session return and the 20-week rate of change, "
+         "highest first, are fixed alternatives.",
+         "- Universe: members of the S&P 500 or S&P MidCap 400 at the signal week (see *Membership and method*), "
+         "within the liquidity floor: an as-traded close of $5 or more and 20-day average dollar volume "
+         "of $20M or more at the signal close.",
+         "- Costs: slippage 0.10% a side, 0.25% under $20 as traded. Trade returns exclude dividends; idle cash earns "
+         "nothing.",
+         "- Periods: in-sample 2016–2021, out-of-sample 2022 onward, and combined, each a separate run from $100,000 "
+         "that closes open positions at its end. Nothing was tuned, so the split is only a robustness check.",
+         "- Benchmarks: SPY with dividends and on price alone, and IJH (the iShares S&P MidCap 400 ETF) on price alone. "
+         "Trade returns exclude dividends, so the price returns are the like-for-like comparison.",
+         "- Delisted stocks are thin before 2021, so 2016–2020 is flattered by survivorship."])
+
+
 def report(res: dict) -> str:
     mc, spy, fx, paired, ijh, us = res["mc"], res["spy"], res["fixed"], res["paired"], res["ijh"], res["all_us"]
     n = res["seeds"]
     title = {p: PERIOD_TITLES[p] for p in PERIOD_ORDER}
     out = ["# Weekend Trend Trader on the S&P 500 and MidCap 400", "",
            f"Data through {res['data_through']}. The rules, stop variants, sizing and costs are those of the "
-           "all-stocks study (`output/wtt/report.md`); only the universe changes. A stock can be bought only while it "
-           "is in the S&P 500 or S&P MidCap 400 at the signal week's close, and is kept after it leaves. Runner: "
-           "`research/run_wtt_sp900.py`; membership: `research/wtt_universe.py`.", "",
+           "all-stocks study, [*Nick Radge's Weekend Trend Trader: two stop rules*](/reports?report=weekend-trend-trader); only the universe changes. A stock can be bought only "
+           "while it is in the S&P 500 or S&P MidCap 400 at the signal week's close, and is kept after it leaves.", "",
+           *rules_section(n),
            "## Findings", "", findings(res), "", "![Growth of $100,000 and drawdowns](equity_drawdown.png)", ""]
 
     out += ["## Random selection by universe", "",
@@ -321,7 +354,7 @@ def report(res: dict) -> str:
     out += [table(["Period", "Universe", "Stop", "CAGR", "Max drawdown (median)", "Sharpe (median)",
                    "Runs beating SPY: with dividends / price only"], rows), "",
             "Trade returns exclude dividends and idle cash earns nothing, so SPY's price return is the like-for-like "
-            "figure. IJH is shown on price alone (no dividend history is cached for it).", ""]
+            "figure. IJH is shown on price alone (no dividend history was available for it).", ""]
 
     out += ["## Ranking", "", "Combined period. Fixed rankings are single deterministic runs; random is the median run.", ""]
     usf = res["all_us_fixed"]
@@ -428,7 +461,7 @@ def membership_section(res: dict) -> str:
         f"- **Coverage:** a typical week had {uni['sp500']['members_median']} S&P 500 and {uni['sp400']['members_median']} "
         "MidCap 400 members with prices in the panel. Missing: companies acquired before 2021 with no price history in the data "
         "(Eaton Vance, CoreLogic, Dunkin', Tech Data and others), second share classes (GOOGL, FOX, NWS; the "
-        "other class is in), and REITs and trusts the app's stock universe leaves out. Renamed tickers are matched by "
+        "other class is in), and REITs and trusts, which the stock universe here leaves out. Renamed tickers are matched by "
         "a hand-checked list (CREE→WOLF, MLHR→MLKN, GPS→GAP, ERI→CZR and others); a ticker whose current owner is "
         "another company (RBC, Regal Beloit until 2021) is left out.",
         f"- **Liquidity floor:** unchanged ($5 as traded, $20M of 20-day average dollar volume at the signal). It kept "
@@ -439,8 +472,8 @@ def membership_section(res: dict) -> str:
         "largest gaps in membership coverage: " + ", ".join(f"{k.split(':')[1]} ({v['weeks']} weeks)"
                                                           for k, v in top[:8]) + ".",
         "",
-        "Files: `montecarlo.csv`, `curves_combined.csv`, `results.json`; harness outputs with trade lists in "
-        "`output/wtt900_*`, `output/wtt500_*` and `output/wtt400_*`.",
+        "Files: `montecarlo.csv`, `curves_combined.csv`, `results.json`; trade lists for each universe's median random "
+        "run and the fixed rankings are under *Compare variations*.",
     ])
 
 

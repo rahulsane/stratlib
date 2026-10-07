@@ -414,8 +414,7 @@ def report(res: dict, data, bench: dict) -> str:
     L = []
     L.append("# The Turtle Trading System on six ETFs")
     L.append("")
-    L.append(f"Data through {res['data_through']}. Rules: *The Original Turtle Trading Rules* (2003), as summarized in "
-             "`turtle_sim.py`. Markets: SPY, QQQ, GLD (gold), SLV (silver), USO (crude oil) and TLT (20+ year "
+    L.append(f"Data through {res['data_through']}. Rules: *The Original Turtle Trading Rules* (2003). Markets: SPY, QQQ, GLD (gold), SLV (silver), USO (crude oil) and TLT (20+ year "
              "Treasuries, standing in for the 30-year bond). Benchmarks: SPY and QQQ bought at the first close and held, "
              "with dividends.")
     L.append("")
@@ -608,7 +607,7 @@ def findings(res: dict) -> str:
         f"a longest run of {tr2['losing_streak']} losing trades, and the top 10% of trades made "
         f"{tr2['top10_share']:.0f}% of the net profit. (The earlier Qullamaggie and Minervini tests had negative "
         f"expectancy.) Oil, gold and silver made the money; SPY and TLT lost it.",
-        f"7. **Costs decide a lot.** The harness slippage (0.10% a side, 0.25% when the price is under $20, which "
+        f"7. **Costs decide a lot.** The slippage assumption (0.10% a side, 0.25% when the price is under $20, which "
         f"caught SLV and USO for years) cost System 2 {-run2['flows_pct_per_year']['slippage']:.0f}% of equity a year. "
         f"At 0.05% a side it would have made "
         f"{sens['Slippage 0.05% per side, no low-price tier | S2 as written']['cagr']:.1f}%/yr; with no slippage, "
@@ -623,7 +622,7 @@ def findings(res: dict) -> str:
 
 METHOD = """## Method
 
-Rules (from the 2003 PDF; details in `turtle_sim.py`):
+Rules (from the 2003 PDF):
 
 - **N**: Wilder-style 20-day average true range, N = (19 × previous N + TR) / 20. The unit sheet is refreshed
   each Monday from the previous close; units, stops and add-on spacing use it.
@@ -656,14 +655,14 @@ Simulation on daily bars:
   do not fit shrink to the room left, and are skipped below a tenth of a unit.
 - An account whose equity reaches zero at a close is liquidated there and stops (only the no-drawdown-rule
   sensitivity hit this).
-- `test_turtle.py` reproduces the rulebook's worked examples: the heating oil N table and unit size, the gold
+- The simulator reproduces the rulebook's worked examples: the heating oil N table and unit size, the gold
   and crude oil add-on prices, the crude oil stop tables including the gap case, and the drawdown schedule.
 
-Harness ground rules kept: slippage 0.10% a side, 0.25% when the as-traded price is under $20 (SLV in 2008–2010
+Assumptions shared with the other backtests here: slippage 0.10% a side, 0.25% when the as-traded price is under $20 (SLV in 2008–2010
 and 2013–2020, USO for several years before its 2020 reverse split); the $20M dollar-volume floor (all six ETFs
 clear it on every session tested); SPY with dividends as the benchmark (QQQ added); each period is a separate
-run from $100,000 with positions closed at its last close. Replaced by the Turtle rules: the 0.5% risk sizing,
-the 20% position cap, the 10-position limit, and the no-margin default (kept as the 1x variant).
+run from $100,000 with positions closed at its last close. The Turtle rules replace those backtests' 0.5% risk
+sizing, 20% position cap, 10-position limit and no-margin default (kept here as the 1x variant).
 
 Caveats:
 
@@ -674,10 +673,9 @@ Caveats:
   futures. The ETFs' low volatility makes 1%-per-N units much larger relative to equity than they were on 1980s
   commodities.
 - Daily bars cannot show the intraday order of highs and lows beyond the assumption above. Stops fill at their
-  price plus the harness slippage; fast-market fills are not modeled.
+  price plus the assumed slippage; fast-market fills are not modeled.
 - The ETFs' fees and USO's futures roll costs are in their prices, as they would be for a holder.
-- Files: trade lists in `trades/<period>_<system>_<leverage>.csv`, daily values in `curves_full.csv`, chart
-  from `turtle_chart.py`.
+- Files: trade lists in `trades/<period>_<system>_<leverage>.csv`, daily values in `curves_full.csv`.
 """
 
 

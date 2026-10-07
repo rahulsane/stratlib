@@ -260,7 +260,7 @@ def main() -> None:
         desc = (f"Weekend Trend Trader. {RULE_NAMES[rule]}. Universe: common stocks"
                 f"{' of US companies' if universe == 'us' else ''} within the liquidity floor. Ranking: "
                 f"{'random, seed ' + str(seed) + ' (the median of ' + str(SEEDS) + ' random runs on the combined period)' if rank == 'random' else RANK_NAMES[rank]}. "
-                "5% of equity per position, at most 20. See output/wtt/report.md.")
+                "5% of equity per position, at most 20.")
         summary = run_test(p, name, WeekendTrend, params, b, rules=RULES, description=desc)
         fixed[name] = {"rule": rule, "universe": universe, "rank": rank, "seed": seed,
                        "periods": {k: {m: float(v[m]) for m in MC_KEYS} for k, v in summary["results"].items()},
@@ -320,8 +320,7 @@ def report(res: dict) -> str:
     periods = ["combined", "in_sample", "out_of_sample"]
     title = {p: PERIOD_TITLES[p] for p in periods}
     out = ["# Nick Radge's Weekend Trend Trader, two stop rules", "",
-           f"Data through {res['data_through']}. Rules and method below; the strategy is in "
-           "`src/stratlib/sim/strategies/weekend_trend.py` and the runner in `research/run_wtt.py`.", "",
+           f"Data through {res['data_through']}. Rules and method below.", "",
            "## Findings", "", findings(res), "", "![Growth of $100,000 and drawdowns](equity_drawdown.png)", ""]
 
     out += ["## Random selection: CAGR, drawdown and Sharpe", "",
@@ -342,7 +341,7 @@ def report(res: dict) -> str:
                    "Runs beating SPY: with dividends / price only"], rows), ""]
     out += ["- " + "; ".join(f"{title[p]}: {spy[p]['start']} to {spy[p]['end']}" for p in periods) + ".",
             "- Each period is a separate run from $100,000. Trade returns exclude dividends and idle cash earns "
-            "nothing (ground rules), so the price-only SPY figure is the like-for-like one.", ""]
+            "nothing, so the price-only SPY figure is the like-for-like one.", ""]
 
     out += ["## Ranking decides the result", "",
             "Combined period (2016–present). The fixed rankings are single deterministic runs; the random row is "
@@ -515,13 +514,13 @@ def method(res: dict) -> str:
         "needs more than the cash left is shrunk to it; with no cash left, the signal is skipped.",
         "",
         "Choices where the book is silent or the data differs:",
-        f"- Universe: common stocks of US companies within the ground rules' liquidity floor (as-traded close of "
+        f"- Universe: common stocks of US companies within a liquidity floor (as-traded close of "
         f"$5 or more, 20-day average dollar volume of $20M or more at the signal close). {res['foreign_left_out']:,} "
         "stocks of foreign companies (by headquarters country, or an ADR flag) are left out, as the Russell 3000 leaves them "
         "out. Radge designed the system on the Russell 3000, which also holds smaller and less liquid stocks than "
         "this floor admits, but not the micro-caps that briefly clear it in a volume spike.",
         "- Ranking: the book gives no rule for more signals than free slots. Random order is the headline "
-        "(Radge recommends Monte Carlo resampling to remove selection bias); the ground rules' 63-session return "
+        "(Radge recommends Monte Carlo resampling to remove selection bias); the 63-session return the other backtests rank by "
         "and the 20-week rate of change are fixed alternatives.",
         "- Costs: slippage 0.10% a side, 0.25% under $20 as traded. Trade returns exclude dividends; idle cash "
         "earns nothing. About 17% of equity sat in cash on average; at T-bill rates (2.4% a year on average, 4.1% "
@@ -531,8 +530,8 @@ def method(res: dict) -> str:
         "- Delisted stocks: the price data's coverage is thin before 2021 (28 delisted in 2019, 9 in 2020 with prices), so "
         "2016–2020 is flattered by survivorship. Delisted positions exit at their last close.",
         "",
-        "Files: `montecarlo.csv` (every random run), `curves_combined.csv`, `results.json`; harness outputs with "
-        "trade lists in `output/wtt_*` (the median random run of each rule and the fixed rankings).",
+        "Files: `montecarlo.csv` (every random run), `curves_combined.csv`, `results.json`; trade lists for the median "
+        "random run of each stop rule and for the fixed rankings are under *Compare variations*.",
     ])
 
 

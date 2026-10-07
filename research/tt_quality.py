@@ -1,12 +1,12 @@
-"""Test 3: the Traveling Trader's fundamentals checklist as a cross-sectional screen. Rules fixed before results.
+"""The Traveling Trader's fundamentals checklist as a cross-sectional screen. Rules fixed before results.
 
-Same universe, rebalance dates, forward returns, periods and survival bar as the Nash rule study
-(nash_rules.py): non-financial stocks passing the ground-rules liquidity test on the first session of each
-calendar quarter, with 8 consecutive quarters of statements available before the day (filing date) and no
+Same universe, rebalance dates, forward returns, periods and survival bar as the Nash rule study:
+non-financial stocks passing the liquidity test ($5 as-traded close, $20M of 20-day average dollar volume) on
+the first session of each calendar quarter, with 8 consecutive quarters of statements available before the day (filing date) and no
 older than 200 days; forward return = rebalance close to the next rebalance close, price only, equal-weighted;
 statistic per quarter = mean return of the passers minus the universe mean, in percentage points.
 
-Tests (his checklist, point-in-time; forward PE and PEG are replaced by trailing versions because FMP has no
+Tests (his checklist, point-in-time; forward PE and PEG are replaced by trailing versions because the data provider has no
 historical analyst estimates):
   PEHIST  trailing PE (market cap moved to the rebalance day by the price change, over TTM net income, both
           positive) below the median of the company's trailing PE at the previous 12 quarter-ends (at least 8
@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import nash_panels  # noqa: E402
 import panel as P  # noqa: E402
+import report_rules as rr  # noqa: E402
 from stratlib.app import open_context  # noqa: E402
 from nash_fundamentals import classifications  # noqa: E402
 from nash_rules import PERIODS, PriceTools, _d, _num, quarter_stats, snapshot_index, summarize  # noqa: E402
@@ -194,6 +195,33 @@ def quality_rows(p, tools, series, classes, i: int) -> dict[str, dict]:
     return out
 
 
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This test asks whether the Traveling Trader's fundamentals checklist picks stocks that beat the average "
+         "stock. Each quarter it screens the whole universe and compares the next quarter's return of the stocks that "
+         "pass with that of all of them. The rules were fixed before any results were seen."],
+        rr.CHECKLIST_SOURCE,
+        rr.CHECKLIST_UNIVERSE,
+        ["Tests, each checked point in time. The data has no history of analyst estimates, so his forward PE and "
+         "PEG are replaced by trailing versions.", "", *rr.CHECKLIST_TRAILING[2:],
+         "- RECORD: TTM revenue at a 12-quarter high and TTM free cash flow positive.",
+         "- QUAL: PEHIST, PEGT, ROIC15, DE1 and FCFUP all pass. This is the checklist.",
+         "- QUAL4: ROIC15, DE1, FCFUP and RECORD, quality without the valuation tests.",
+         "- CHEAP: PEHIST and PEGT, valuation only."],
+        ["How a test is scored:", "",
+         "- Return: from one rebalance close to the next, split-adjusted price only, equal-weighted. A stock whose "
+         "prices end during the quarter returns to its last close.",
+         "- Each quarter's statistic is the passers' mean return minus the universe's mean, in percentage points. "
+         "*pts/yr* is the quarterly average times 4; *t* is its t-statistic across quarters; *quarters +* and *years "
+         "+* count how often it was positive.",
+         "- Periods: a holdout of 2011–2015 on a separate price panel, in-sample 2016–2021, and 2022 on.",
+         "- A test survives only if its in-sample t is at least 3, its mean is positive in the holdout and from 2022, "
+         "and it is positive in at least 4 of the 6 in-sample years.",
+         "- There are no trading costs; this is a screen, not a portfolio. Statements are as restated, not as first "
+         "reported, and delisted stocks are thin before 2021."],
+    )
+
+
 def main() -> None:
     series, classes = load_quality_series()
     print(f"Company histories: {len(series):,}", flush=True)
@@ -232,9 +260,9 @@ def main() -> None:
             survivors.append(t)
     results["survivors"] = survivors
 
-    lines = ["# Test 3: the fundamentals checklist as a screen", "", "Rules: docstring of `tt_quality.py`. "
-             "Passers minus universe, annualized points (quarterly mean x 4), t-stat, % of quarters positive, "
-             "years positive, average universe size, share of the universe passing.", ""]
+    lines = ["# The fundamentals checklist as a screen", "", "Passers minus universe, annualized points "
+             "(quarterly mean x 4), t-stat, % of quarters positive, years positive, average universe size, share of "
+             "the universe passing.", "", *rules_section()]
     for period in PERIODS:
         lines += [f"## {period}", "", "| test | pts/yr | t | quarters + | years + | universe | passing |", "|---|---|---|---|---|---|---|"]
         for t in TESTS:

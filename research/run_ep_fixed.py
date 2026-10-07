@@ -23,12 +23,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import earnings  # noqa: E402
 import market_filters as mf  # noqa: E402
+import report_rules as rr  # noqa: E402
 from engine import OUTPUT, PERIOD_TITLES, PERIODS, Rules, _f, run_test, simulate  # noqa: E402
 from lab import load_all  # noqa: E402
 from strategies import episodic_pivot as ep  # noqa: E402
 
 EXITS = {
-    "a": ("(a) C10 with the breakeven fix",
+    "a": ("(a) C10, with the day-3 sale only above the entry price",
           {"kind": "partial_day", "day": 3, "fraction": 1 / 3, "n": 10, "require_profit": True}),
     "b": ("(b) initial stop, time exit after 20 sessions", {"kind": "time", "days": 20}),
     "c": ("(c) initial stop to day 20, then a close below the 10-day SMA", {"kind": "time_then_sma", "days": 20, "n": 10}),
@@ -44,6 +45,33 @@ BASE = {**ep.DEFAULTS, "gap_pct": 20, "neglected": False, "liquidity": "prior", 
 TWO = ("in_sample", "out_of_sample")
 
 
+def rules_section() -> list[str]:
+    return rr.section(
+        ["This report reruns the SPY-filtered episodic pivot (20% gap, no neglected condition, market filter B: SPY "
+         "closed above its 50-day SMA on the signal day) with two corrections, three exits and four ways of holding "
+         "the capital. The earlier episodic-pivot reports used the uncorrected rules."],
+        rr.EPISODIC_PIVOT,
+        ["The two corrections:", "",
+         "- Liquidity. " + rr.EP_PRIOR_LIQUIDITY[0] + " The earlier reports tested the signal day itself, so a stock "
+         "that only became liquid on the news could pass.",
+         "- Breakeven. In C10 the third sold on day 3 is sold, and the stop moved to the entry price, only when the "
+         "day-3 close is above the entry price. Otherwise nothing is sold, the original stop stays, and the whole "
+         "position trails the 10-day SMA from the next session. The earlier version sold the third and moved the "
+         "stop even at a loss."],
+        ["Exits:", "",
+         "- (a) C10 with the breakeven fix, as above.",
+         "- (b) Keep only the initial stop and sell at the close of the 20th session after entry.",
+         "- (c) Keep only the initial stop until the 20th session after entry; from that close on, sell at the first "
+         "close below the 10-day SMA."],
+        ["Each exit runs four ways:", "",
+         "- Standalone at 0.5% risk per trade, idle cash earning nothing.",
+         "- As an SPY overlay at 0.5%, 1.0% and 1.5% risk per trade. " + rr.SPY_OVERLAY[0],
+         "",
+         "Section 1 lists the trades of the earlier filtered run that the liquidity fix removes. Expectancy is shown "
+         "± its standard error. The yearly table subtracts SPY's return with dividends from the overlay's."],
+        rr.GROUND_RULES, rr.TERMS)
+
+
 def expectancy(folder: Path, period: str) -> tuple[float, float, int]:
     rs = np.array([float(r["r"]) for r in csv.DictReader(open(folder / f"trades_{period}.csv", encoding="utf-8"))])
     return float(rs.mean()), float(rs.std(ddof=1) / math.sqrt(len(rs))), len(rs)
@@ -53,7 +81,8 @@ def main() -> None:
     panel, bench = load_all()
     dates = earnings.load(panel)
     masks = mf.compute(panel)["masks"]
-    lines = ["# Episodic pivot, corrected", "", f"Data through {panel.dates[-1]}. {__doc__.split(chr(10), 1)[1]}", ""]
+    lines = ["# Episodic pivot, corrected", "", f"Data through {panel.dates[-1]}. {__doc__.split(chr(10), 1)[1]}", "",
+             *rules_section()]
 
     # 1. Trades the liquidity fix removes, from the previous run (signal-day liquidity, original C10 exit).
     new_mask = ep.prior_liquidity(panel, BASE)
@@ -94,7 +123,7 @@ def main() -> None:
             inner = inners[code]
             summary = run_test(panel, name, lambda: mf.Filtered(inner, masks["B"], "B", shared), {**BASE, "exit": rule},
                                bench, rules=rules,
-                               description=f"Episodic pivot, 20% gap, SPY above its 50-day SMA, corrected liquidity; "
+                               description=f"Episodic pivot, 20% gap, SPY above its 50-day SMA, liquidity tested before the signal day; "
                                            f"exit {label}; {mlabel}.")
             results[(code, mode)] = summary["results"]
             stats[(code, mode)] = {p: expectancy(OUTPUT / name, p) for p in (*TWO, "combined")}
@@ -147,7 +176,7 @@ def main() -> None:
     lines.append("")
 
     best = max(EXITS, key=lambda c: stats[(c, "alone_0.5")]["in_sample"][0])
-    lines += [f"Best exit by in-sample expectancy: ({best}) {EXITS[best][0]}, "
+    lines += [f"Best exit by in-sample expectancy: {EXITS[best][0]}, "
               f"{stats[(best, 'alone_0.5')]['in_sample'][0]:+.3f}R in-sample, "
               f"{stats[(best, 'alone_0.5')]['out_of_sample'][0]:+.3f}R out-of-sample.", ""]
     path = OUTPUT / "ep_fixed_report.md"

@@ -1,6 +1,6 @@
-"""Test 1: the Traveling Trader's index dip ladder against plain DCA. Rules fixed before any results were seen.
+"""The Traveling Trader's index dip ladder against plain DCA. Rules fixed before any results were seen.
 
-Data: S&P 500 total return 1950-2026 and QQQ 1999-2026 (tt_data.py). A reserve earns the cash rate.
+Data: S&P 500 total return 1950-2026 and QQQ 1999-2026. A reserve earns the cash rate.
 No taxes or trading costs beyond the 0.09%/yr fund fee.
 
 Each month, at the close of its first session, the investor has $1,000.
@@ -33,6 +33,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import report_rules as rr  # noqa: E402
 import tt_data as T  # noqa: E402
 
 B = 1000.0
@@ -40,6 +41,42 @@ LADDER = [(-0.10, 1 / 3), (-0.20, 1 / 2), (-0.30, 1.0)]
 VIX_LADDER = [(30.0, 0.5), (40.0, 1.0)]
 RULES = {"A": "plain DCA", "B": "wait for dips (ladder only)", "C": "60/40 + ladder", "D": "60/40 + ladder, reserve capped 40%",
          "E": "VIX ladder (30/40)"}
+
+
+def rules_section() -> list[str]:
+    return rr.section(
+        ["The Traveling Trader is a YouTube investor who tells viewers to buy the S&P 500 and Nasdaq at every 10% fall "
+         "from the highs and to add more at each further 10%. This test asks whether holding cash back for those dips "
+         "beats investing the same money every month. The rules were fixed before any results were seen."],
+        ["The investor has $1,000 to invest at the close of the first session of every month. Five ways to use it:", "",
+         "- A, plain DCA: buy $1,000 of the index each month.",
+         "- B, wait for dips: every $1,000 goes into a cash reserve, and only the ladder buys.",
+         "- C, 60/40 + ladder: buy $600, put $400 in the reserve, and let the ladder spend the reserve (his \"40% "
+         "cash\").",
+         "- D, C capped: as C, but at each contribution any reserve above 40% of the portfolio is invested.",
+         "- E, VIX ladder: as B, but the triggers are VIX closes of 30 or more (spend half the reserve) and 40 or more "
+         "(spend the rest), re-armed after a close below 20. From 1990, where the VIX exists."],
+        ["The ladder used by B, C and D checks every session's close. The drawdown is the close divided by the highest "
+         "close of the last 252 sessions, minus 1. At −10% the ladder spends a third of the reserve, at −20% half of "
+         "what is left, and at −30% all of it, buying at that close. Each level fires once per decline, and all three "
+         "re-arm when the index closes at a new 252-session high."],
+        ["Data and costs:", "",
+         "- S&P 500 total return from 1950: daily index closes plus Shiller's monthly dividends spread over each "
+         "month's sessions. QQQ with dividends from 1999.",
+         "- Both pay a 0.09% a year index-fund fee. There are no taxes or trading costs.",
+         "- The reserve earns cash interest: Shiller's one-year rate before 1990, the 3-month T-bill rate after.",
+         "- The portfolio's value includes the reserve."],
+        ["How the tables read:", "",
+         "- Single runs cover the full history and the last 30, 20 and 10 years. *Final* is the ending value, *vs A* "
+         "its difference from plain DCA, *MWR/yr* the money-weighted (internal) rate of return a year, and *worst "
+         "fall* the largest drawdown of the portfolio.",
+         "- Window tables start a run at every month and contribute for 10, 20 or 30 years (5, 10 or 20 for QQQ), "
+         "valuing the portfolio at the first session of the following month. *Beat A* is the share of windows in "
+         "which a rule's money-weighted return beat plain DCA's; *gap vs A* is the difference in percentage points a "
+         "year. Rule E is compared over the windows that start in 1990 or later.",
+         "- *Months under water* runs from each ladder purchase to the last session its value, with dividends, was "
+         "below the purchase price."],
+    )
 
 
 def ladder_triggers(dd: np.ndarray) -> list[tuple[int, float, float]]:
@@ -236,7 +273,7 @@ def main() -> None:
     spx = T.load_spx()
     qqq = T.load_qqq(spx)
     vix = T.load_vix()
-    lines = ["# Test 1: index dip ladder vs plain DCA", "", "Rules are in the docstring of `tt_ladder.py`.", ""]
+    lines = ["# Index dip ladder vs plain DCA", "", *rules_section()]
     results = {"rules": __doc__}
     run_index(spx, lines, results, T.vix_on(spx, vix), (10, 20, 30))
     run_index(qqq, lines, results, T.vix_on(qqq, vix), (5, 10, 20))

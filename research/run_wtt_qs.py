@@ -213,7 +213,7 @@ def main() -> None:
             desc = (f"QuantifiedStrategies-style Weekend Trend Trader on {UNIVERSES[u]} members (point in time): WTT "
                     "entries, a 40% trailing stop that never tightens, 10 positions of 10%, no costs. Ranking: "
                     + (f"random, seed {seed} (the median of {SEEDS} random runs, combined period)" if rank == "random"
-                       else "63-session return, highest first") + ". See output/wttqs/report.md.")
+                       else "63-session return, highest first") + ".")
             summary = run_test(p, name, WeekendTrend, params, b, rules=QS_RULES, description=desc)
             fixed[name] = {"universe": u, "rank": rank, "seed": seed,
                            "periods": {k: {mm: float(v[mm]) for mm in W.MC_KEYS} for k, v in summary["results"].items()},
@@ -318,10 +318,9 @@ def report(res: dict) -> str:
     n = res["seeds"]
     title = {p: PERIOD_TITLES[p] for p in PERIOD_ORDER}
     out = ["# A QuantifiedStrategies-style Weekend Trend Trader: Russell 3000 and S&P 500 + MidCap 400", "",
-           f"Data through {res['data_through']}. Runner: `research/run_wtt_qs.py`; Russell 3000 membership: "
-           "`research/wtt_russell.py`; S&P membership: `research/wtt_universe.py`.", "",
+           f"Data through {res['data_through']}.", "",
            "QuantifiedStrategies' rules are members-only; this is a reconstruction from what they disclose (see "
-           "*Rules* below and `output/wtt/gap.md`).", "",
+           "*Rules* below and the *Why the published 18% differs* note in [*Nick Radge's Weekend Trend Trader: two stop rules*](/reports?report=weekend-trend-trader)).", "",
            "## Findings", "", findings(res), "", "![Growth of $100,000 and drawdowns](equity_drawdown.png)", ""]
     rows = []
     for period in PERIOD_ORDER:
@@ -412,7 +411,7 @@ def rules_section(res: dict) -> str:
         "(they use each index's own trend; SPY stands in for both universes).",
         "- Exit: \"a wide trailing stop\" with average holdings of 65–121 weeks; used here: 40% below the highest "
         "weekly close, checked on weekly closes and never tightened. Sold at the next open.",
-        "- 10 positions of 10%; no commissions or slippage (a second run adds the ground rules' slippage: 0.10% a "
+        "- 10 positions of 10%; no commissions or slippage (a second run adds slippage of 0.10% a "
         "side, 0.25% under $20).",
         "- Universe: index members at the signal week; no liquidity floor beyond an as-traded close of $1. They used "
         "Norgate's historical constituents from 1990; this test covers 2016–2026.",
@@ -424,14 +423,15 @@ def rules_section(res: dict) -> str:
         "Membership:",
         f"- Russell 3000: the union of IWB (Russell 1000), IWM (Russell 2000) and IWV (Russell 3000) holdings saved by "
         f"the Wayback Machine, any from the previous 190 days ({cover}). Unmatched names are mostly companies "
-        "acquired before 2021 that have no price history here, and REITs and trusts the app's stock universe "
+        "acquired before 2021 that have no price history here, and REITs and trusts, which the stock universe here "
         "leaves out.",
-        "- S&P 500 and MidCap 400: as in the S&P 900 study (`output/wtt900/report.md`).",
+        "- S&P 500 and MidCap 400: as in [*Weekend Trend Trader on the S&P 500 and MidCap 400*](/reports?report=weekend-trend-trader-sp900).",
         f"- The broad price panel holds {info['columns_kept']:,} stocks that were ever members (of "
         f"{info['columns_full']:,} with prices).",
         "- Survivorship: delisted coverage is thin before 2021, so 2016–2020 is flattered.",
         "",
-        "Files: `montecarlo.csv`, `curves_combined.csv`, `results.json`; harness outputs in `output/wttqs_*`.",
+        "Files: `montecarlo.csv`, `curves_combined.csv`, `results.json`; trade lists for the median random runs and "
+        "the 3-month ranking are under *Compare variations*.",
     ])
 
 

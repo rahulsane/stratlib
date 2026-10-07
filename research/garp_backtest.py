@@ -1,13 +1,13 @@
 """S&P 500 GARP backtest: (1) a self-managed copy of the index, (2) as if an S&P 500 GARP ETF had existed all along.
 
-Index: garp_index.py (current rules throughout; "historical" rules only for the check against S&P's published
-returns). Main period: from the December 2015 rebalancing (effective after the close of 18 Dec 2015) to the
+Index: S&P's current rules throughout; the rules in force at the time only for the check against S&P's published
+returns. Main period: from the December 2015 rebalancing (effective after the close of 18 Dec 2015) to the
 latest session. An extended run from December 2007 is reported separately as approximate, because the data provider lacks
 prices for 10-25% of S&P 500 members before 2015 (mostly companies later acquired or bankrupt).
 
 Version 1, self-managed: $100,000 at the first rebalancing close. At each rebalancing close the account trades to
-the index weights in whole shares, paying the ground-rules slippage (0.10% per side, 0.25% under $20 as traded;
-no commissions). Between rebalancings, dividends and the proceeds of stocks leaving the S&P 500 (sold at their last
+the index weights in whole shares, paying slippage of 0.10% per side (0.25% under $20 as traded; no
+commissions). Between rebalancings, dividends and the proceeds of stocks leaving the S&P 500 (sold at their last
 close in the index) wait in cash, earning nothing, until the next rebalancing.
 
 Version 2, ETF: the index total return less SPGP's measured all-in cost, 0.35% a year (its NAV trailed the official
@@ -19,9 +19,8 @@ Taxes (taxable-account section only): 15% on long-term gains and qualified divid
 no state tax. Each year's tax is paid at the next June rebalancing (about when it falls due). Losses offset gains
 and carry forward. ETFs: distributions (dividends less fund expenses) taxed yearly; no capital-gain distributions
 (SPGP's after-tax figures show none); gains taxed on the final sale.
-
-Run: PYTHONPATH=src .venv/Scripts/python research/garp_backtest.py
 """
+# Run: PYTHONPATH=src .venv/Scripts/python research/garp_backtest.py
 
 from __future__ import annotations
 
