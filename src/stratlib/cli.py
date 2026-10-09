@@ -1,4 +1,5 @@
-"""Command line entry point: ``stratlib backfill``, ``stratlib status``, ``stratlib web`` and ``stratlib publish``."""
+"""Command line entry point: ``stratlib backfill``, ``stratlib status``, ``stratlib web``, ``stratlib publish`` and
+``stratlib tradetest-bank``."""
 
 from __future__ import annotations
 
@@ -64,6 +65,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     pub.add_argument("--output", metavar="PATH", help="snapshot file (default: public/stratlib.db beside config.yaml)")
     pub.add_argument("--years", type=float, default=4.0,
                      help="years of daily prices kept per stock (default 4); market symbols keep their whole history")
+    bank = sub.add_parser("tradetest-bank", help="build the TradeTest chart bank: random daily windows for the blind replay")
+    bank.add_argument("--windows", type=int, default=4000, help="windows in the bank (default 4000)")
+    bank.add_argument("--seed", type=int, default=20261008, help="random seed, so a build can be repeated (default 20261008)")
+    bank.add_argument("--output", metavar="PATH", help="bank file (default: public/tradetest_bank.npz beside config.yaml)")
+    bank.add_argument("--etf-cache", metavar="PATH",
+                      help="daily ETF bars as JSON, used only for allowlisted ETFs the database lacks (default: "
+                           "research/cache/supply_demand_all_daily.json beside config.yaml)")
+    bank.add_argument("--db", metavar="PATH", help="read this database instead of data.db_path")
     bt = sub.add_parser("backtest", help="replay historical CANSLIM rules from dated cached inputs")
     bt.add_argument("--start", required=True, help="first date, YYYY-MM-DD")
     bt.add_argument("--end", required=True, help="last date, YYYY-MM-DD")
@@ -231,6 +240,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         return 0
+    if args.command == "tradetest-bank":
+        return _tradetest_bank(args, settings)
     if args.command == "publish":
         import sqlite3
         from .publish import PublishError, publish
@@ -263,6 +274,30 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             store.close()
     return _status(settings)
+
+
+def _tradetest_bank(args, settings) -> int:
+    import sqlite3
+    from pathlib import Path
+    from .tradetest_bank import BankError, build_bank
+    root = settings.path.parent
+    last = [0.0]
+
+    def note(message):
+        if time.monotonic() - last[0] >= 5:
+            last[0] = time.monotonic()
+            log.info("%s", message)
+    try:
+        summary = build_bank(Path(args.db) if args.db else settings.data.db_path,
+                             Path(args.output) if args.output else root / "public" / "tradetest_bank.npz",
+                             windows=args.windows, seed=args.seed, progress=note,
+                             etf_cache=Path(args.etf_cache) if args.etf_cache else root / "research" / "cache"
+                             / "supply_demand_all_daily.json")
+    except (BankError, OSError, sqlite3.Error, ValueError) as exc:
+        log.error("%s", exc)
+        return 1
+    print(json.dumps(summary, indent=2))
+    return 0
 
 
 def _strategy_backtest(args, settings) -> int:

@@ -4,7 +4,9 @@
 
 .DESCRIPTION
     1. Runs `stratlib publish` to write public\stratlib.db (skip with -SkipPublish or -SkipSnapshot).
-    2. Packs the code, config.yaml, research/reports.json, research/output and deploy/server into a tarball.
+    2. Packs the code, config.yaml, research/reports.json, research/output, deploy/server and the TradeTest chart
+       bank (public\tradetest_bank.npz, from `stratlib tradetest-bank`) into a tarball. Without the bank it warns,
+       and the TradeTest page says it is unavailable.
     3. Uploads the tarball, the snapshot (unless -SkipSnapshot) and deploy/server/refresh.sh to the release bucket.
     4. Runs refresh.sh on the instance over SSM and prints its output.
 
@@ -30,6 +32,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $tfDir = Join-Path $PSScriptRoot 'terraform'
 $snapshot = Join-Path $root 'public\stratlib.db'
+$bank = Join-Path $root 'public\tradetest_bank.npz'
 
 function Invoke-Native {
     # Runs a native command, returns its stdout, and throws on a non-zero exit code.
@@ -60,9 +63,12 @@ try {
     $bundle = Join-Path $env:TEMP 'stratlib-app.tar.gz'
     Remove-Item $bundle -ErrorAction SilentlyContinue
     $tar = Join-Path $env:SystemRoot 'System32\tar.exe'
+    $packed = @('pyproject.toml', 'README.md', 'config.yaml', 'src', 'research/reports.json', 'research/output', 'deploy/server')
+    if (Test-Path $bank) { $packed += 'public/tradetest_bank.npz' }
+    else { Write-Warning "No TradeTest bank at $bank, so the TradeTest page will say it is unavailable. Build it with: .venv\Scripts\stratlib tradetest-bank" }
     Invoke-Native 'tar' {
-        & $tar -czf $bundle --exclude=__pycache__ --exclude=*.pyc --exclude=*.egg-info `
-            pyproject.toml README.md config.yaml src research/reports.json research/output deploy/server
+        # An array argument reaches a native command as one argument per element.
+        & $tar -czf $bundle --exclude=__pycache__ --exclude=*.pyc --exclude=*.egg-info $packed
     }
     $mb = { param($p) '{0:N0} MB' -f ((Get-Item $p).Length / 1MB) }
     if ($SkipSnapshot) { Write-Host "code $(& $mb $bundle), snapshot already in S3" }

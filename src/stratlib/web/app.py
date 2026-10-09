@@ -20,21 +20,23 @@ from .screen import ScreenPage
 from .settings import SettingsPage
 from .stock import StockPage
 from .strategies import StrategiesPage
+from .tradetest import ASSETS as TRADETEST_ASSETS, TradeTestPage, api_router, service_for
 
 ASSETS = Path(__file__).with_name("assets")
 FONTS = Path(__file__).parents[1] / "static" / "fonts"
 PORT = 8600
 PAGE_CLASSES = {"Strategies": StrategiesPage, "Screen": ScreenPage, "Portfolio": PortfolioPage, "Market": MarketPage,
-                "Positions": PositionsPage, "Backtest": BacktestPage, "Settings": SettingsPage}
+                "Positions": PositionsPage, "Backtest": BacktestPage, "TradeTest": TradeTestPage, "Settings": SettingsPage}
 # Navigation order and each page's address; Screen is the home page.
 PAGES = {"Screen": "/", "Strategies": "/strategies", "Portfolio": "/portfolio", "Market": "/market",
          "Stock detail": "/stock", "Positions": "/positions", "Backtest": "/backtest", "Reports": "/reports",
-         "Settings": "/settings"}
+         "TradeTest": "/tradetest", "Settings": "/settings"}
 # The public app opens on the strategies compared, and has no Positions or Settings.
 PUBLIC_PAGES = {"Strategies": "/", "Screen": parts.screen_path(True), "Portfolio": "/portfolio", "Market": "/market",
-                "Stock detail": "/stock", "Backtest": "/backtest", "Reports": "/reports"}
+                "Stock detail": "/stock", "Backtest": "/backtest", "Reports": "/reports", "TradeTest": "/tradetest"}
 
 # The list highlight moves at once on a click; on a phone the stock panel opens as a sheet over the list.
+# TradeTest's page is a mount point: its app loads when the element appears, and unmounts itself when it leaves.
 SCRIPT = """
 <script>
 window.desk = {
@@ -57,6 +59,15 @@ document.addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') document.querySelector('.d-detail.is-open')?.classList.remove('is-open');
 });
+const mountTradeTest = () => document.querySelectorAll('[data-tradetest]:not([data-mounted])').forEach((el) => {
+  el.dataset.mounted = '';
+  import(el.dataset.assets + 'app.js?v=' + el.dataset.build).then((m) => m.mount(el)).catch((error) => {
+    el.textContent = 'TradeTest could not load. Reload the page to try again.';
+    console.error(error);
+  });
+});
+new MutationObserver(mountTradeTest).observe(document.documentElement, {childList: true, subtree: true});
+mountTradeTest();
 </script>
 """
 
@@ -138,6 +149,10 @@ def main(settings: Settings, *, port: int = PORT, host: str = "127.0.0.1", show:
     data = Data(settings, public=public)
     app.add_static_files("/fonts", FONTS)
     app.add_api_route("/report-files/{slug}/{path:path}", image_route(data), methods=["GET"])
+    if TRADETEST_ASSETS.is_dir():
+        # Browsers revalidate (a 304 when unchanged), so after a release app.js never meets a cached older chart.js.
+        app.add_static_files("/tradetest-assets", TRADETEST_ASSETS, max_cache_age=0)
+    app.include_router(api_router(service_for(settings)))
     app.on_shutdown(data.close)
     ui.run(lambda: root(data), host=host, port=port, title="StratLib", dark=True, reload=False, show=show,
            favicon=ASSETS / "favicon.svg", reconnect_timeout=10)

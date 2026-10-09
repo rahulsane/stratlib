@@ -81,6 +81,16 @@ Reports are navigable research posts. Major experiments have separate posts;
 minor variations are compared within the same report. A report becomes a supported
 live strategy only when its rules are implemented and registered in strategies.py.
 
+On 2026-10-08 the owner asked for TradeTest, so visitors can do what the owner did
+on the supply/demand marking page: ten random daily charts (random instrument and
+period from the data on hand) to mark up with channels, trendlines, rays, price and
+time levels and labelled zones, and to trade bar by bar, every trade with an entry,
+a stop and a target; the instrument and dates stay hidden until a chart is finished,
+there is no rewinding, and a report can be downloaded at the end. The owner was away
+while it was built; the fill and scoring rules, the window bank's filters and the
+extras (guesses, running score, zone presets) were the builder's choices, awaiting
+the owner's review.
+
 ## Evidence on Hand
 
 The local cache contains real FMP prices. Recorded FMP fixtures exercise the
