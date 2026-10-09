@@ -579,6 +579,28 @@ retain those settings until explicitly reassigned. Existing screen results keep
 their recorded thresholds until you run the screen again. Neither page makes
 API calls.
 
+### TradeTest
+
+**TradeTest** (`/tradetest`, in both apps) deals ten blind daily charts to mark up and trade forward one bar at
+a time; the instrument and dates show only once a chart is finished. Its charts come from a bank of random
+250-session windows (150 bars of history, 100 to trade), built offline from the database, which is opened
+read-only:
+
+```powershell
+.venv\Scripts\stratlib tradetest-bank   # writes public\tradetest_bank.npz; --windows, --seed, --db, --output
+```
+
+The windows are US common stocks, delisted ones included, and up to 15% ETFs from an allowlist of plain,
+unleveraged funds read from the database (`research/cache/supply_demand_all_daily.json` fills in any the database
+lacks); no two windows of one instrument share a session, which holds the ETFs to about 12%. Every window is
+complete, liquid, above $5 as traded (split records undo the split adjustment), free of spliced histories and
+reused tickers, and clear of the market events a visitor would recognise; the constants at the top of
+`src/stratlib/tradetest_bank.py` set the rules. A build takes about seven minutes.
+
+The app reads `public/tradetest_bank.npz` beside `config.yaml`, or the file `STRATLIB_TRADETEST_BANK` names, and
+signs its chart tokens with `STRATLIB_TRADETEST_KEY` (else `/etc/machine-id`, else a key per process). Rebuilding
+the bank expires the sets visitors have in progress.
+
 ### Public read-only site
 
 `stratlib web --public` serves a read-only copy for visitors. It opens on

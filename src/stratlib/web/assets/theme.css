@@ -38,6 +38,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .d-top-right { display: flex; align-items: center; gap: 16px; margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .d-chip { text-decoration: none; display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: 13px; font-size: 12px; font-weight: 500; }
 .d-chip i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+/* Narrower desktops keep the market chip and drop the notes beside it, so every page link fits in the bar. */
+@media (max-width: 1340px) { .d-top-right > :not(.d-chip) { display: none; } }
 .d-chip.tone-caution { background: var(--amber-tint); color: var(--amber); }
 .d-chip.tone-up { background: var(--green-tint); color: var(--green-text); }
 .d-chip.tone-down { background: var(--red-tint); color: var(--red-text); }

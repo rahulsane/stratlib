@@ -99,6 +99,12 @@ After the backfill, the screens and `stratlib strategy-backtest`:
 This publishes a new snapshot, uploads it with the current code and restarts the app. Open tabs reconnect
 after a few seconds. Use `-SkipSnapshot` to redeploy code or Caddy changes without uploading the snapshot again.
 
+The TradeTest page's chart bank travels in the code tarball, not with the snapshot. Build it on the PC with
+`.venv\Scripts\stratlib tradetest-bank` (about seven minutes; it writes `public\tradetest_bank.npz`), then run
+`refresh.ps1` as usual. When the file is missing, `refresh.ps1` warns and the page tells visitors it is
+unavailable. A rebuilt bank expires the sets visitors have in progress, so rebuild it only when the charts should
+change. The instance's `/etc/machine-id` keeps their tokens valid across restarts.
+
 The Python environment is rebuilt only when `pyproject.toml` changes.
 
 ## Changing the password or the domain

@@ -576,5 +576,45 @@
    "levtrend/rolling_30y.csv",
    "levtrend/switches.csv"
   ]
+ },
+ {
+  "slug": "supply-demand-zones",
+  "title": "Supply and demand zones on 20 ETFs",
+  "strategy": "Supply and demand zones",
+  "summary": "Supply and demand zone trading in the style of TradingLab's video, written as mechanical rules with a trader who marks zones by hand: market structure from swing highs and lows, a limit order into the latest zone, a stop just past its wick, a 2.5R target. Long and short on 7 commodity and 13 equity ETFs, on daily bars from 2016 and 1-hour bars over the last two years. Two fits of the rules, each with and without a higher-time-frame trend filter, before and after tax, against SPY and SPY at the same volatility.",
+  "documents": [
+   {
+    "path": "supply_demand_zones/report.md",
+    "title": "Findings, results and method"
+   }
+  ],
+  "files": [
+   "supply_demand_zones/curves_daily.csv",
+   "supply_demand_zones/results_rules_a.json",
+   "supply_demand_zones/results_rules_a_trend_filter.json",
+   "supply_demand_zones/results_rules_b.json",
+   "supply_demand_zones/results_rules_b_trend_filter.json",
+   "supply_demand_zones/trades_daily_rules_a.csv",
+   "supply_demand_zones/trades_daily_rules_a_trend_filter.csv",
+   "supply_demand_zones/trades_daily_rules_b.csv",
+   "supply_demand_zones/trades_daily_rules_b_trend_filter.csv",
+   "supply_demand_zones/trades_hourly_rules_a.csv",
+   "supply_demand_zones/trades_hourly_rules_a_trend_filter.csv",
+   "supply_demand_zones/trades_hourly_rules_b.csv",
+   "supply_demand_zones/trades_hourly_rules_b_trend_filter.csv"
+  ],
+  "note": "The trend filter was tested against pass criteria set before it was run. The 1-hour results are provisional: the rules were read from daily charts."
+ },
+ {
+  "slug": "published-vs-tested",
+  "title": "Why published strategy returns rarely survive testing",
+  "strategy": "Cross-strategy",
+  "summary": "Why the returns claimed for trading strategies rarely show up when their rules are tested: results selected for looking good, rules fitted to past data, easier years, missing costs and taxes, leverage counted as skill, loose rules, and hindsight. Each with figures from this site's tests, what held up, and questions to ask of any claimed result.",
+  "documents": [
+   {
+    "path": "published_vs_tested/report.md",
+    "title": "Findings and evidence"
+   }
+  ]
  }
 ]

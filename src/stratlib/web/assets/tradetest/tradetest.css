@@ -1,0 +1,532 @@
+/* TradeTest: ten blind daily charts to mark up and trade forward. Built on the site's theme (theme.css tokens and its
+   d- classes); everything here is tt-. Blue is the active tool, the current tab and selection; green and red only
+   mark long and short, up and down, profit and loss. Floating things (menus, tooltips, toasts, the dialog and the
+   guide) are the only ones with a shadow. */
+
+.tt-root { display: block; min-width: 0; }
+.tt-root svg, .tt-menu svg, .tt-tip svg, .tt-spot-toast svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.tt-root .d-btn svg { width: 16px; height: 16px; }
+.tt-root [hidden] { display: none !important; }
+.tt-narrow { display: none; }
+@media (max-width: 1500px) { .tt-xwide { display: none; } }
+.tt-head .d-actions { flex-wrap: wrap; }
+/* The report, the CSV and Copy result before a chart is finished: all three plainly off, the report's outline too */
+.tt-head .d-actions .d-btn:disabled { border-color: transparent; background: none; color: var(--muted); }
+
+/* The ten charts as tabs, Screen funnel style */
+.tt-tabs { display: flex; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
+/* A status too long for its tab is cut with an ellipsis (the tab's title has it whole), never run into the next. */
+.tt-tab { flex: 1 1 0; display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; gap: 2px; min-width: 104px;
+  padding: 9px 14px 8px; overflow: hidden; text-align: left;
+  border-bottom: 2px solid transparent; transition: background-color 120ms ease-out, border-color 120ms ease-out; }
+.tt-tab + .tt-tab { border-left: 1px solid var(--line); }
+.tt-tab:first-child { border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius); }
+.tt-tab:last-child { border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+.tt-tab b { font-size: 13px; font-weight: 600; color: var(--bright); white-space: nowrap; }
+.tt-tab > span { overflow: hidden; font-size: 12px; color: var(--muted); white-space: nowrap; text-overflow: ellipsis; }
+.tt-tab-short { display: none; }
+/* A finished chart's R in its direction colour; the word before it stays quiet. */
+.tt-tab > span.d-up { color: var(--green-text); }
+.tt-tab > span.d-down { color: var(--red-text); }
+.tt-tab > span.is-flat { color: var(--text); }
+.tt-tab .tt-tab-long, .tt-tab .tt-tab-short { color: var(--muted); }
+.tt-tab.is-current .tt-tab-long, .tt-tab.is-current .tt-tab-short { color: var(--text); }
+.tt-tab:hover:not(:disabled) { background: var(--raised); }
+.tt-tab:disabled { cursor: default; }
+.tt-tab.is-current { border-bottom-color: var(--blue); }
+.tt-tab.is-current > span:not(.d-up):not(.d-down):not(.is-flat) { color: var(--text); }
+.tt-tab:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+@media (max-width: 1340px) {
+  .tt-tab { padding: 9px 6px 8px 9px; }
+  .tt-tab-long { display: none; }
+  .tt-tab-short { display: inline; }
+}
+/* Tablets: two rows of five, so every chart can be reached without a scrollbar. */
+@media (min-width: 721px) and (max-width: 1100px) {
+  .tt-tabs { flex-wrap: wrap; overflow: hidden; }
+  .tt-tab { flex: 1 0 20%; min-width: 0; border-radius: 0 !important; }
+  .tt-tab:nth-child(n + 6) { border-top: 1px solid var(--line); }
+  .tt-tab:nth-child(6) { border-left: 0; }
+}
+
+/* The set's running score, one line above the tabs */
+.tt-score { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--text); }
+.tt-score b { font-weight: 600; }
+.tt-score-other { color: var(--muted); }
+
+/* Body: the chart card beside the side panel, both as tall as the chart */
+.tt-body { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; align-items: stretch; margin-top: 12px; }
+.tt-chart-card { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.tt-side { display: flex; flex-direction: column; min-width: 0; contain: size; overflow-y: auto; overscroll-behavior: contain; }
+
+/* Toolbar: drawing and trading tools at the left, the replay at the right */
+.tt-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.tt-tools { display: flex; align-items: center; gap: 1px; min-width: 0; }
+.tt-tool { display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 6px; min-width: 32px; height: 32px; padding: 0 7px;
+  border-radius: var(--radius); color: var(--text); font-size: 13px; font-weight: 500; white-space: nowrap;
+  transition: background-color 120ms ease-out, color 120ms ease-out; }
+.tt-tool:hover:not(:disabled) { background: var(--raised); color: var(--bright); }
+.tt-tool.is-on, .tt-tool.is-on:hover { background: var(--blue-tint); color: var(--blue-text); }
+.tt-tool:disabled { opacity: 0.38; cursor: default; }
+.tt-tool.is-wide { padding: 0 10px 0 8px; }
+.tt-tool.is-long:not(.is-on) svg { color: var(--green-text); }
+.tt-tool.is-short:not(.is-on) svg { color: var(--red-text); }
+.tt-tool .tt-ic-zone { fill: currentColor; fill-opacity: 0.18; }
+.tt-tool.is-demand:not(.is-on) .tt-ic-zone, .tt-tool.is-demand:not(.is-on) svg { color: #3cc4b5; }
+.tt-tool.is-supply:not(.is-on) .tt-ic-zone, .tt-tool.is-supply:not(.is-on) svg { color: #ff7f7c; }
+.tt-menu-btn { gap: 1px; padding: 0 4px 0 6px; }
+.tt-menu-btn svg + svg { width: 11px; height: 11px; color: var(--muted); }
+.tt-sep { flex: none; width: 1px; height: 20px; margin: 0 4px; background: var(--line); }
+.tt-replay { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.tt-replay .d-btn { flex: none; }
+.tt-five { padding: 0 10px; }
+.tt-speed { min-width: 42px; padding: 0 8px; justify-content: center; }
+.tt-root .d-btn.is-on { background: var(--blue-tint); border-color: rgba(41, 98, 255, 0.55); color: var(--blue-text); }
+.tt-progress { min-width: 78px; font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
+.tt-progress b { font-weight: 600; color: var(--bright); }
+.tt-finish { min-width: 84px; justify-content: center; }
+
+/* The end-of-replay notice inside the chart card */
+.tt-replay-notice, .tt-moving-notice { display: flex; align-items: center; gap: 10px; margin: 8px 8px 0; padding: 7px 10px 7px 12px;
+  border-radius: var(--radius); background: var(--raised); font-size: 13px; }
+.tt-replay-notice i, .tt-moving-notice i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--blue-text); }
+.tt-replay-notice p, .tt-moving-notice p { margin: 0; }
+.tt-replay-notice b, .tt-moving-notice b { font-weight: 500; color: var(--bright); }
+.tt-replay-notice span, .tt-moving-notice span { color: var(--muted); }
+.tt-replay-notice .d-btn, .tt-moving-notice .d-btn { margin-left: auto; }
+/* While another tab moves the chart: the same strip, quieter, with Take over (kept on phones too) */
+.tt-moving-notice i { background: var(--muted); }
+.tt-moving-notice .d-btn { flex: none; white-space: nowrap; }
+
+/* The chart and what floats over it. Above 720px app.js sets the height to what is left of the screen below the
+   stage's top (fitStage); this is the height before it does. */
+.tt-stage { position: relative; height: clamp(420px, calc(100vh - 290px), 760px); container-type: inline-size; }
+.tt-chart-host { position: absolute; inset: 0; overflow: hidden; user-select: none; -webkit-user-select: none; }
+.tt-canvas { display: block; touch-action: none; outline: none; }
+.tt-legend { position: absolute; z-index: 1; top: 6px; left: 10px; right: 76px; display: grid; gap: 0; font-size: 11px; line-height: 16px;
+  color: var(--muted); pointer-events: none; }
+.tt-legend > div { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tt-legend .tt-lg-item { margin-right: 6px; white-space: nowrap; }
+.tt-legend .tt-lg-bar { margin-right: 12px; color: var(--text); }
+.tt-legend .tt-lg-key { margin-right: 3px; }
+.tt-legend .tt-lg-gap { margin-left: 4px; }
+.tt-legend .tt-up { color: var(--green-text); font-weight: 500; }
+.tt-legend .tt-down { color: var(--red-text); font-weight: 500; }
+.tt-legend .tt-lg-ma { margin-right: 12px; }
+.tt-hint { position: absolute; z-index: 2; top: 8px; right: 76px; max-width: calc(100% - 96px); padding: 5px 10px;
+  border: 1px solid var(--line-2); border-radius: 4px; background: var(--raised); font-size: 12px; color: var(--text); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; opacity: 0; pointer-events: none; transition: opacity 120ms ease-out; }
+.tt-hint.is-on { opacity: 1; }
+/* Latest: back to the newest bar, at the plot's foot by the price axis once it is panned out of view (chart.js places it) */
+.tt-latest { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 6px 0 10px;
+  border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--raised); font: 500 12px var(--font); color: var(--text);
+  transition: border-color 120ms ease-out, color 120ms ease-out; }
+.tt-latest:hover { border-color: #434651; color: var(--bright); }
+.tt-root .tt-latest svg { width: 14px; height: 14px; }
+.tt-hint.tone-error { border-color: rgba(239, 83, 80, 0.45); background: #2a2129; color: var(--red-text); }
+/* Narrow charts: the hint drops below the legend, which may run to two or three lines on a phone. */
+@container (max-width: 980px) { .tt-hint { top: 44px; white-space: normal; text-overflow: clip; line-height: 1.4; } }
+@container (max-width: 560px) { .tt-hint { top: 58px; } }
+.tt-toasts { position: absolute; z-index: 3; left: 10px; bottom: 36px; display: grid; justify-items: start; gap: 6px; max-width: calc(100% - 96px);
+  pointer-events: none; }
+.tt-toast { padding: 7px 12px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--panel); font-size: 12px; line-height: 1.4;
+  color: var(--text); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); animation: tt-toast-in 160ms ease-out both; transition: opacity 200ms ease-out; }
+.tt-toast b { font-weight: 600; }
+.tt-toast.is-out { opacity: 0; }
+@keyframes tt-toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.tt-overlay { position: absolute; z-index: 5; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(19, 23, 34, 0.8); }
+.tt-loading { display: grid; justify-items: center; gap: 12px; font-size: 13px; color: var(--muted); text-align: center; }
+.tt-loading i { width: 120px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--blue), transparent) 0 0 / 200% 100%;
+  animation: tt-load 1.1s linear infinite; }
+@keyframes tt-load { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.tt-draftbar { display: none; }
+
+/* The side panel's sections */
+.tt-sec { display: grid; gap: 10px; padding: 14px 16px; }
+.tt-sec + .tt-sec { border-top: 1px solid var(--line); }
+.tt-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; }
+.tt-sec-head h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--bright); }
+.tt-sec-head > span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.tt-sec-head .d-btn-quiet { margin-right: -8px; }
+.tt-sec .d-hint { line-height: 1.5; }
+.tt-bar { margin-top: -2px; }
+.tt-pnl { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text); }
+.tt-pnl b { font-weight: 600; }
+
+/* The reveal, once a chart is finished */
+.tt-reveal { display: grid; gap: 3px; padding: 10px 12px 11px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg);
+  font-size: 12px; line-height: 1.5; color: var(--muted); }
+.tt-reveal.is-new { animation: tt-reveal 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.tt-reveal p { margin: 0; }
+.tt-reveal b { font-weight: 600; }
+.tt-reveal-name { margin-bottom: 2px !important; font-size: 13px; color: var(--text); }
+.tt-reveal-name b { font-size: 15px; color: var(--bright); }
+.tt-reveal p:nth-child(3) { color: var(--text); }
+.tt-reveal-note { color: var(--muted); font-style: italic; }
+@keyframes tt-reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* The order ticket */
+.tt-ticket { background: linear-gradient(var(--raised), var(--raised)) 0 0 / 100% 2px no-repeat; }
+.tt-seg { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.tt-seg-btn { height: 24px; padding: 0 10px; border-radius: 4px; font-size: 12px; font-weight: 500; color: var(--muted);
+  transition: background-color 120ms ease-out, color 120ms ease-out; }
+.tt-seg-btn:hover { color: var(--text); }
+.tt-seg-btn.is-on { background: var(--raised); color: var(--bright); }
+.tt-seg-btn.is-long.is-on { background: var(--green-tint); color: var(--green-text); }
+.tt-seg-btn.is-short.is-on { background: var(--red-tint); color: var(--red-text); }
+.tt-entry { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tt-field-label { font-size: 12px; color: var(--muted); }
+.tt-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tt-field { display: grid; gap: 4px; min-width: 0; }
+.tt-field > span { font-size: 12px; color: var(--muted); }
+.tt-input { width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--panel);
+  font: 500 13px var(--font); font-feature-settings: "tnum" 1, "cv11" 1; color: var(--text); outline: none; transition: border-color 120ms ease-out; }
+.tt-input:hover:not(:disabled) { border-color: #434651; }
+.tt-input:focus, .tt-input:focus:hover { border-color: var(--blue); }
+.tt-input::placeholder { color: var(--muted); opacity: 1; }
+.tt-input:disabled { opacity: 0.6; }
+.tt-facts { display: grid; gap: 3px; margin: 0; font-size: 12px; }
+.tt-facts div { display: flex; justify-content: space-between; gap: 12px; }
+.tt-facts dt { color: var(--muted); }
+.tt-facts dd { margin: 0; color: var(--bright); text-align: right; }
+.tt-msg { margin: 0; font-size: 12px; line-height: 1.45; color: var(--red-text); }
+.tt-msg:empty { display: none; }
+.tt-msg.is-note { color: var(--muted); }
+.tt-ticket-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.tt-root .tt-place.is-long { border-color: rgba(38, 166, 154, 0.5); background: var(--green-tint); color: var(--green-text); }
+.tt-root .tt-place.is-long:hover { background: rgba(38, 166, 154, 0.24); border-color: rgba(38, 166, 154, 0.7); }
+.tt-root .tt-place.is-short { border-color: rgba(239, 83, 80, 0.5); background: var(--red-tint); color: var(--red-text); }
+.tt-root .tt-place.is-short:hover { background: rgba(239, 83, 80, 0.22); border-color: rgba(239, 83, 80, 0.7); }
+.tt-place kbd { margin-left: 2px; border-color: currentColor; color: inherit; opacity: 0.7; }
+
+/* Trades */
+.tt-list { display: grid; gap: 8px; }
+.tt-trade { display: grid; gap: 4px; padding: 9px 12px 10px; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
+  transition: background-color 90ms ease-out, border-color 120ms ease-out; }
+.tt-trade:hover { background: var(--raised); }
+.tt-trade.is-selected, .tt-drawing.is-selected { border-color: rgba(41, 98, 255, 0.55); background: var(--blue-tint); }
+.tt-trade-head { display: flex; align-items: center; gap: 8px; min-height: 22px; }
+.tt-trade-name { font-size: 13px; font-weight: 600; color: var(--bright); white-space: nowrap; }
+.tt-trade-r { margin-left: auto; font-size: 13px; white-space: nowrap; }
+.tt-trade-r b { font-weight: 600; }
+.tt-trade-r small { font-size: 12px; color: var(--muted); }
+.tt-trade-what { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text); }
+.tt-trade-when { margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+.tt-pill { background: var(--raised); color: var(--muted); }
+.tt-pill.is-open, .tt-pill.is-pending, .tt-pill.is-closed { color: var(--text); }
+.tt-pill.is-closing { background: var(--amber-tint); color: var(--amber); }
+.tt-row-actions { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 -10px; }
+.tt-note { height: 28px; margin-top: 4px; font-size: 12px; font-weight: 400; }
+.tt-edit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 4px; }
+.tt-edit .tt-row-actions, .tt-edit .tt-msg { grid-column: 1 / -1; }
+.tt-edit .tt-row-actions { justify-content: flex-end; margin: 0; gap: 6px; }
+
+/* Drawings */
+.tt-drawing { display: grid; gap: 6px; padding: 8px 10px 9px; border: 1px solid var(--line); border-radius: var(--radius);
+  transition: background-color 90ms ease-out, border-color 120ms ease-out; }
+.tt-drawing-head { display: flex; align-items: center; gap: 8px; }
+.tt-dicon { display: grid; flex: none; place-items: center; width: 22px; height: 22px; color: var(--muted); }
+.tt-label { flex: 1; min-width: 0; height: 28px; }
+.tt-del { min-width: 28px; height: 28px; padding: 0; color: var(--muted); }
+.tt-del:hover:not(:disabled) { color: var(--red-text); }
+.tt-drawing-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; padding-left: 30px; }
+.tt-swatches { display: flex; gap: 5px; }
+.tt-swatch { width: 16px; height: 16px; border-radius: 50%; background: var(--c); transition: box-shadow 120ms ease-out; }
+.tt-swatch:hover:not(:disabled) { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--border-hover, #434651); }
+.tt-swatch.is-on, .tt-swatch.is-on:hover { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--blue); }
+.tt-swatch:disabled { cursor: default; }
+.tt-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); cursor: pointer; }
+.tt-check input, .tt-menu input[type="checkbox"] { width: 14px; height: 14px; margin: 0; accent-color: var(--blue); }
+.tt-drawing-where { margin: 0; padding-left: 30px; font-size: 11px; line-height: 1.4; color: var(--muted); }
+
+/* The side panel's foot: Rules in detail */
+.tt-side-foot { margin-top: auto; border-top: 1px solid var(--line); }
+.tt-how summary { padding: 10px 16px 12px; border-radius: 0; }
+.tt-how-body, .tt-guide-rules-body { padding: 0 16px 16px 30px; font-size: 12px; }
+.tt-how-body p, .tt-guide-rules-body p { margin: 0; line-height: 1.55; color: var(--text); }
+.tt-how-body h4, .tt-guide-rules-body h4 { margin: 6px 0 -4px; font-size: 12px; }
+.tt-keys { display: grid; gap: 5px; margin: 0; }
+.tt-keys div { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: baseline; gap: 8px; }
+.tt-keys dd { margin: 0; color: var(--text); }
+.tt-how-note, .tt-guide-note { color: var(--muted) !important; }
+
+/* Menus, tooltips and the dialog */
+.tt-menu { position: fixed; z-index: 60; display: grid; gap: 1px; min-width: 230px; max-width: 300px; padding: 10px 6px 8px;
+  border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--panel); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-family: var(--font); }
+.tt-menu .d-menu-title { padding: 0 8px 4px; }
+.tt-menu-check, .tt-menu-item { display: flex; align-items: center; gap: 9px; min-height: 30px; padding: 0 8px; border-radius: 4px; font-size: 13px;
+  color: var(--text); text-align: left; cursor: pointer; }
+.tt-menu-check:hover, .tt-menu-item:hover { background: var(--raised); }
+.tt-menu-item.is-on { color: var(--blue-text); }
+.tt-menu-check + .tt-menu-item, .tt-menu-item + .tt-menu-check { margin-top: 4px; }
+.tt-menu-swatch { flex: none; width: 14px; height: 2px; border-radius: 1px; background: var(--c); }
+.tt-menu-swatch.is-volume { height: 8px; background: linear-gradient(90deg, rgba(38, 166, 154, 0.55) 0 40%, transparent 40% 60%, rgba(239, 83, 80, 0.55) 60%); }
+.tt-menu-note { margin: 6px 8px 0; font-size: 11px; line-height: 1.4; color: var(--muted); }
+.tt-tip, .tt-spot-tip { position: fixed; z-index: 70; display: flex; align-items: center; gap: 8px; padding: 5px 8px; border: 1px solid var(--line-2);
+  border-radius: 4px; background: var(--panel); font: 400 12px var(--font); color: var(--text); white-space: nowrap; pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.tt-tip[hidden], .tt-spot-tip[hidden] { display: none; }
+.tt-tip kbd, .tt-spot-tip kbd { color: var(--muted); }
+/* margin: auto centres the modal: the site shell's CSS reset sets every margin to 0, the browser's own centring included. */
+.tt-dialog { inset: 0; width: calc(100vw - 32px); max-width: 440px; max-height: calc(100dvh - 32px); margin: auto; padding: 18px 20px;
+  overflow: auto; border: 1px solid var(--line-2); color: var(--text); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.tt-dialog::backdrop { background: rgba(10, 12, 18, 0.6); }
+.tt-dialog h3 { margin: 0 0 8px; font-size: 15px; font-weight: 600; color: var(--bright); }
+.tt-dialog p { margin: 0 0 18px; font-size: 13px; line-height: 1.55; }
+.tt-dialog .d-form-actions { justify-content: flex-end; }
+.tt-guess { display: grid; gap: 8px; margin: -6px 0 18px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg); }
+.tt-guess-title { font-size: 12px; color: var(--muted); }
+.tt-guess-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tt-copy-box { height: auto; min-height: 64px; margin-bottom: 18px; padding: 8px 10px; line-height: 1.45; resize: none; }
+.tt-reveal-guess { color: var(--text); }
+
+/* Links that act (into the guide, back to it): Action Blue's text shade */
+.tt-link { justify-self: start; padding: 0; font: 500 12px var(--font); color: var(--blue-text); text-align: left; }
+.tt-link:hover { text-decoration: underline; }
+
+/* How to play: the guide, a dialog over the page (a sheet on phones). The steps are listed at its left, the current one
+   selected in Action Blue; a step is a heading, a picture and numbered things to do; Show me, Back and Next at its foot. */
+.tt-guide { inset: 0; width: calc(100vw - 32px); max-width: 760px; height: min(700px, calc(100dvh - 32px)); max-height: calc(100dvh - 32px);
+  margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--line-2); color: var(--text); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.tt-guide[open] { display: flex; flex-direction: column; animation: tt-guide-in 160ms ease-out both; }
+.tt-guide:focus { outline: none; }
+.tt-guide::backdrop { background: rgba(10, 12, 18, 0.6); }
+@keyframes tt-guide-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes tt-sheet-in { from { transform: translateY(32px); } to { transform: none; } }
+.tt-guide-head { display: flex; flex: none; align-items: center; gap: 12px; padding: 10px 10px 10px 20px; border-bottom: 1px solid var(--line); }
+.tt-guide-head h2 { flex: 1; margin: 0; font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--bright); }
+.tt-guide-x { display: inline-grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: var(--radius); color: var(--muted);
+  transition: background-color 120ms ease-out, color 120ms ease-out; }
+.tt-guide-x:hover { background: var(--raised); color: var(--bright); }
+/* The progress line shows on phones; elsewhere it is only read out. */
+.tt-guide-progress { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.tt-guide-dots { display: flex; gap: 6px; }
+.tt-guide-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+.tt-guide-dots i.is-on { background: var(--blue); }
+.tt-guide-main { display: grid; flex: 1; grid-template-columns: 200px minmax(0, 1fr); min-height: 0; }
+.tt-guide-nav { display: grid; align-content: start; gap: 2px; padding: 12px 8px; border-right: 1px solid var(--line); overflow-y: auto; }
+.tt-guide-nav button { display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px 0 7px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500; color: var(--muted); text-align: left; transition: background-color 90ms ease-out, color 90ms ease-out; }
+.tt-guide-nav button:hover { background: var(--raised); color: var(--text); }
+.tt-guide-nav button[aria-current="step"] { background: var(--blue-tint); color: var(--bright); }
+.tt-guide-num { display: inline-grid; flex: none; place-items: center; width: 20px; height: 20px; border-radius: 4px; background: var(--raised);
+  font-size: 11px; font-weight: 600; line-height: 1; color: var(--bright); }
+.tt-guide-nav [aria-current="step"] .tt-guide-num { background: var(--blue); color: #fff; }
+.tt-guide-body { min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+.tt-guide-step { display: grid; align-content: start; gap: 14px; padding: 18px 24px 20px; }
+.tt-guide-step h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.3; color: var(--bright); }
+/* Beside the list of steps the heading would only repeat the current one: kept for screen readers, shown on phones */
+@media (min-width: 721px) {
+  .tt-guide-step h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+.tt-guide-do { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.tt-guide-do li { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 10px; font-size: 14px; line-height: 1.5;
+  color: var(--text); }
+.tt-guide-do .tt-guide-num { margin-top: 1px; }
+.tt-guide-do b { font-weight: 600; color: var(--bright); }
+.tt-guide-do kbd { margin: 0 1px; vertical-align: 1px; }
+.tt-guide-nb { white-space: nowrap; }
+/* A toolbar icon in a sentence, in a small key-like box */
+.tt-guide-ic { display: inline-grid; place-items: center; width: 22px; height: 20px; margin: 0 1px; border: 1px solid var(--line-2); border-radius: 4px;
+  vertical-align: -5px; color: var(--text); }
+.tt-root .tt-guide-ic svg { width: 14px; height: 14px; }
+.tt-guide-foot { display: flex; flex: none; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.tt-guide-foot .d-btn { justify-content: center; min-width: 84px; }
+.tt-guide-back { margin-left: auto; }
+/* Step 7's note on the score line: quieter than the steps, under them */
+.tt-guide-tip { margin: 0; padding-left: 30px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.tt-guide-tip b { font-weight: 600; color: var(--text); }
+.tt-guide-tip kbd { margin: 0 1px; vertical-align: 1px; }
+
+/* The guide's pictures: inline SVG on the page's background in a hairline frame, coloured by class */
+.tt-ill { display: grid; place-items: center; padding: 14px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.tt-root .tt-ill svg.tt-i { display: block; width: 100%; height: auto; fill: none; stroke: none; stroke-width: 1; overflow: visible; }
+.tt-ill text { font: 500 11px var(--font); font-feature-settings: "tnum" 1, "cv11" 1; fill: var(--muted); }
+.tt-ill .tt-i-s { font-size: 12px; }
+.tt-ill .tt-i-l { font-size: 13px; }
+.tt-ill .tt-i-xl { font-size: 15px; }
+.tt-ill .tt-i-w { font-weight: 600; }
+.tt-ill .tt-i-4 { font-weight: 400; }
+.tt-ill .tt-i-t { fill: var(--text); }
+.tt-ill .tt-i-b { fill: var(--bright); font-weight: 600; }
+.tt-ill .tt-i-m { fill: var(--muted); }
+.tt-ill .tt-i-g { fill: var(--green-text); }
+.tt-ill .tt-i-r { fill: var(--red-text); }
+.tt-ill .tt-i-up { fill: var(--green); }
+.tt-ill .tt-i-down { fill: var(--red); }
+.tt-ill .tt-i-wick-up { stroke: var(--green); }
+.tt-ill .tt-i-wick-down { stroke: var(--red); }
+.tt-ill .tt-i-axis, .tt-ill .tt-i-sep { stroke: var(--line); }
+.tt-ill .tt-i-zero { stroke: var(--line-2); }
+.tt-ill .tt-i-hidden { fill: var(--text); fill-opacity: 0.03; }
+.tt-ill .tt-i-ghost { stroke: var(--faint); stroke-dasharray: 2 2; }
+.tt-ill .tt-i-replay { stroke: var(--muted); stroke-dasharray: 4 3; }
+.tt-ill .tt-i-card { fill: var(--panel); stroke: var(--line); }
+.tt-ill .tt-i-btn, .tt-ill .tt-i-kbd { stroke: var(--line-2); }
+.tt-ill .tt-i-field { fill: var(--panel); stroke: var(--line-2); }
+.tt-ill .tt-i-pill { fill: var(--raised); }
+.tt-ill .tt-i-sel, .tt-ill .tt-i-mark { fill: var(--blue); }
+.tt-ill .tt-i-mk { fill: #fff; font-weight: 600; }
+.tt-ill .tt-i-ic { color: var(--text); stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.tt-ill .tt-i-last { stroke: var(--green); stroke-opacity: 0.7; stroke-dasharray: 2 3; }
+.tt-ill .tt-i-reward { fill: var(--green-tint); }
+.tt-ill .tt-i-risk { fill: var(--red-tint); }
+.tt-ill .tt-i-tline, .tt-ill .tt-i-br-g { stroke: var(--green); }
+.tt-ill .tt-i-sline, .tt-ill .tt-i-br-r { stroke: var(--red); }
+.tt-ill .tt-i-eline { stroke: var(--text); }
+.tt-ill .tt-i-tag-g { fill: var(--bg); stroke: var(--green); }
+.tt-ill .tt-i-tag-r { fill: var(--bg); stroke: var(--red); }
+.tt-ill .tt-i-tag-last { fill: var(--green); }
+.tt-ill .tt-i-tag-text { fill: var(--bg); font-weight: 600; }
+.tt-ill .tt-i-bar-up { fill: var(--green); fill-opacity: 0.75; }
+.tt-ill .tt-i-bar-down { fill: var(--red); fill-opacity: 0.75; }
+
+/* Step 3's drawing tools, with their toolbar icons */
+.tt-guide-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; width: 100%; }
+.tt-guide-tools > div { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.tt-guide-tools > div > span:nth-child(2) { display: grid; flex: 1; min-width: 0; }
+.tt-guide-tool { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: var(--text); }
+.tt-guide-tools b { font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--bright); }
+.tt-guide-tools small { font-size: 12px; line-height: 1.35; color: var(--muted); }
+.tt-guide-tools kbd { flex: none; }
+.tt-guide-tools .tt-ic-zone { fill: currentColor; fill-opacity: 0.18; }
+.tt-guide-tools .is-demand .tt-guide-tool { color: #3cc4b5; }
+.tt-guide-tools .is-supply .tt-guide-tool { color: #ff7f7c; }
+/* Step 4's order kinds, step 5's trade labels, step 8's keys and rules */
+.tt-guide-kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.tt-guide-kinds div { padding: 8px 10px 9px; border: 1px solid var(--line); border-radius: var(--radius); }
+.tt-guide-kinds dt { font-size: 12px; font-weight: 600; color: var(--bright); }
+.tt-guide-kinds dd { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+.tt-guide-status { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; margin: 0; padding: 2px 12px 12px 30px; }
+.tt-guide-status div { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 8px; font-size: 12px; }
+.tt-guide-status dd { margin: 0; color: var(--muted); }
+.tt-guide-pill { background: var(--raised); color: var(--muted); }
+.tt-guide-pill.is-open, .tt-guide-pill.is-pending, .tt-guide-pill.is-closed { color: var(--text); }
+.tt-guide-pill.is-closing { background: var(--amber-tint); color: var(--amber); }
+.tt-guide-keys { gap: 6px; padding-left: 30px; font-size: 13px; }
+.tt-guide-rules-body .tt-guide-keys { padding-left: 0; }
+.tt-guide-keys div { grid-template-columns: 128px minmax(0, 1fr); }
+.tt-guide-rules { border: 1px solid var(--line); border-radius: var(--radius); }
+.tt-guide-rules summary { padding: 10px 12px; }
+
+/* Show me: a ring round the controls a step is about, their tooltip's words, and the way back to the guide */
+.tt-spot { position: fixed; z-index: 66; border: 2px solid var(--blue); border-radius: 8px; pointer-events: none; transition: opacity 200ms ease-out; }
+.tt-spot::after { content: ""; position: absolute; inset: -2px; border: 2px solid var(--blue); border-radius: 10px; opacity: 0;
+  animation: tt-spot 900ms ease-out 2; }
+@keyframes tt-spot { from { inset: -2px; opacity: 0.8; } to { inset: -12px; opacity: 0; } }
+/* A tip too long for a phone wraps rather than run off the screen. */
+.tt-spot-tip { z-index: 67; flex-wrap: wrap; row-gap: 2px; max-width: calc(100vw - 16px); white-space: normal; transition: opacity 200ms ease-out; }
+.tt-spot-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--muted); }
+/* The way back stays until it is used or dismissed. On a desktop it sits over the side panel's foot, off the chart's
+   time axis; below 1100px at the left, and across the foot of a phone. */
+.tt-spot-toast { position: fixed; z-index: 68; right: 16px; bottom: 16px; display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px);
+  padding: 4px 4px 4px 12px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--panel); font: 400 12px/1.4 var(--font);
+  color: var(--muted); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); animation: tt-toast-in 160ms ease-out both; transition: opacity 200ms ease-out; }
+.tt-spot-x { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; margin-left: -6px; border-radius: 4px; color: var(--muted);
+  transition: background-color 120ms ease-out, color 120ms ease-out; }
+.tt-spot-x:hover { background: var(--raised); color: var(--bright); }
+.tt-spot-toast .tt-spot-x svg { width: 14px; height: 14px; }
+.tt-spot.is-out, .tt-spot-tip.is-out, .tt-spot-toast.is-out { opacity: 0; }
+
+.tt-notices .d-notice { align-items: center; }
+.tt-notice-actions { display: flex; gap: 4px; margin: -4px -6px -4px auto; }
+.tt-notice-actions .d-btn { white-space: nowrap; }
+
+@media (max-width: 1100px) {
+  .tt-body { grid-template-columns: minmax(0, 1fr); }
+  .tt-side { contain: none; overflow: visible; }
+  .tt-side-foot { margin-top: 0; }
+  .tt-draftbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 8px 8px 12px; border-top: 1px solid var(--line);
+    background: var(--raised); font-size: 12px; }
+  .tt-draftbar-what { flex: 1 1 160px; min-width: 0; color: var(--text); }
+  .tt-draftbar-what b { font-weight: 600; }
+  .tt-draftbar .d-btn { height: 32px; }
+  .tt-spot-toast { right: auto; left: 16px; }
+}
+@media (max-width: 720px) {
+  .tt-stage { height: 360px; }
+  .tt-toolbar { gap: 4px; padding: 4px 6px; }
+  .tt-tools { flex: 1 0 100%; overflow-x: auto; scrollbar-width: none; }
+  .tt-tools::-webkit-scrollbar { display: none; }
+  .tt-tools .tt-tool.is-long, .tt-tools .tt-tool.is-short { order: -2; }
+  .tt-tools .tt-sep-trade { order: -1; }
+  /* The tool row and the tab strip fade at the edge that has more to scroll to. */
+  .tt-tools.is-more-right, .tt-tabs.is-more-right { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
+  .tt-tools.is-more-left, .tt-tabs.is-more-left { -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px);
+    mask-image: linear-gradient(90deg, transparent, #000 32px); }
+  .tt-tools.is-more-left.is-more-right, .tt-tabs.is-more-left.is-more-right {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+  .tt-replay { flex: 1 0 100%; justify-content: space-between; gap: 8px; margin-left: 0; padding-top: 4px; border-top: 1px solid var(--line); }
+  .tt-progress { min-width: 0; }
+  .tt-tab { flex: 0 0 auto; min-width: 96px; padding: 8px 12px; }
+  /* The head: Help at the end of the title's row, then the other four actions sharing a row. */
+  .tt-head { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 8px; }
+  .tt-head .d-head-left, .tt-head .d-actions { display: contents; }
+  .tt-head .d-title { grid-column: 1 / 4; align-self: center; }
+  .tt-head .tt-help { grid-column: 4; }
+  .tt-head .d-actions > .d-btn:not(.tt-help) { grid-row: 2; }
+  .tt-head .d-actions .d-btn { padding: 0 10px; }
+  .tt-legend { right: 70px; }
+  .tt-legend > div { white-space: normal; text-overflow: clip; }
+  .tt-legend .tt-lg-item { display: inline-block; }
+  .tt-sec { padding: 12px 14px; }
+  .tt-replay-notice .d-btn { display: none; }
+  .tt-wide { display: none; }
+  .tt-narrow { display: inline; }
+  .tt-finish { min-width: 0; }
+  /* The guide as a sheet from the foot of the screen, its steps as a progress line with dots */
+  .tt-guide { width: 100%; max-width: none; height: calc(100dvh - 24px); max-height: none; margin: auto 0 0; border-width: 1px 0 0;
+    border-radius: 12px 12px 0 0; }
+  .tt-guide[open] { animation: tt-sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .tt-guide-head { padding: 8px 8px 8px 16px; }
+  .tt-guide-progress { position: static; display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; width: auto;
+    height: auto; padding: 9px 16px; overflow: visible; clip-path: none; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  .tt-guide-main { grid-template-columns: minmax(0, 1fr); }
+  .tt-guide-nav { display: none; }
+  .tt-guide-step { gap: 12px; padding: 14px 16px 18px; }
+  .tt-ill { padding: 10px 8px; }
+  .tt-guide-tools { gap: 8px 12px; }
+  .tt-guide-kinds, .tt-guide-status { grid-template-columns: minmax(0, 1fr); }
+  .tt-guide-kinds div { padding: 7px 10px; }
+  .tt-guide-kinds dt, .tt-guide-kinds dd { display: inline; }
+  .tt-guide-kinds dd { margin-left: 4px; }
+  .tt-guide-keys { padding-left: 0; font-size: 12px; }
+  .tt-guide-keys div { grid-template-columns: 112px minmax(0, 1fr); }
+  .tt-guide-foot { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  .tt-guide-foot .d-btn { flex: 1; min-width: 0; }
+  .tt-guide-back { margin-left: 0; }
+  /* No half-width Back that does nothing on the first step: Next (and Skip, on a first visit) take the row. */
+  .tt-guide-back:disabled { display: none; }
+  .tt-spot-toast { right: 16px; justify-content: space-between; }
+}
+/* Fingers: every control at least 32px tall; a swatch is a 24px dot in a 32px target. */
+@media (pointer: coarse) {
+  .tt-root .d-btn-quiet, .tt-root .d-btn { min-height: 32px; height: auto; }
+  .tt-seg-btn { height: 32px; padding: 0 12px; }
+  .tt-input, .tt-note, .tt-label { height: 36px; }
+  .tt-copy-box { height: auto; }
+  .tt-del { min-width: 32px; height: 32px; }
+  .tt-swatches { gap: 0; }
+  .tt-swatch { box-sizing: border-box; width: 32px; height: 32px; padding: 4px; background-clip: content-box; }
+  .tt-swatch:hover:not(:disabled) { box-shadow: inset 0 0 0 1.5px var(--border-hover, #434651); }
+  .tt-swatch.is-on, .tt-swatch.is-on:hover { box-shadow: inset 0 0 0 2px var(--blue); }
+  .tt-check { min-height: 32px; }
+  .tt-check input { width: 18px; height: 18px; }
+  .tt-menu-check, .tt-menu-item { min-height: 40px; }
+  .tt-menu input[type="checkbox"] { width: 18px; height: 18px; }
+  .tt-link { min-height: 32px; }
+  .tt-guide-nav button { min-height: 40px; }
+  .tt-guide-x, .tt-spot-x { width: 40px; height: 40px; }
+  .tt-latest { height: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tt-toast, .tt-reveal, .tt-loading i, .tt-guide[open], .tt-spot-toast { animation: none !important; }
+  /* Show me's ring stays still. */
+  .tt-spot::after { display: none; }
+}

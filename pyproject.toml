@@ -30,7 +30,7 @@ stratlib = "stratlib.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-stratlib = ["static/fonts/*", "web/assets/*"]
+stratlib = ["static/fonts/*", "web/assets/*", "web/assets/tradetest/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
